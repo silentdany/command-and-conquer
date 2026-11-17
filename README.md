@@ -53,6 +53,9 @@ Testé en jeu le 17/11/2026 (Forever 1.60.1, build 70938) avec `probe/CnCProbe` 
 | `SendChatMessage` appelé par un add-on | OK | Bloqué (`ADDON_ACTION_BLOCKED`) |
 | Bouton sécurisé qui lance une macro `/bg …` sur un clic ou une touche du joueur | OK | **OK** |
 | Lecture du chat par un add-on | OK | Contenu caché (« secret ») |
+| Macro `/ping [@cible]` lancée par le bouton sécurisé | — | **OK** |
+| Position du joueur sur la carte (`C_Map`, `UnitPosition`) | — | Indisponible |
+| Ping de minicarte par un add-on (`Minimap:PingLocation`) | — | Bloqué (`ADDON_ACTION_BLOCKED`) |
 
 La roue utilise donc un bouton sécurisé : tout le choix (action, lieu, nombre) se fait dans l'environnement sécurisé du jeu, et la macro part au relâchement de la touche, qui est une action du joueur.
 
