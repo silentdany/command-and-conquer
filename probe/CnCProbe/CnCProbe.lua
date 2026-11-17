@@ -31,8 +31,14 @@ local function out(fmt, ...)
   DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. text)
 end
 
+-- Whispers need "Name-Realm" on clients with connected realms.
 local function playerName()
-  return (UnitName("player"))
+  local name, realm
+  if UnitFullName then name, realm = UnitFullName("player") end
+  name = name or UnitName("player")
+  if (not realm or realm == "") and GetNormalizedRealmName then realm = GetNormalizedRealmName() end
+  if realm and realm ~= "" then return name .. "-" .. realm end
+  return name
 end
 
 ---------------------------------------------------------------------------
@@ -115,7 +121,7 @@ end
 local function counts(list)
   local ok = {}
   for _, r in ipairs(list) do
-    if r.status:find("^ECHO") then ok[r.trigger] = true end
+    if r.status:find("^ECHO") or r.status:find("^SENT") then ok[r.trigger] = true end
   end
   return ok
 end
@@ -290,8 +296,17 @@ local CHAT_EVENTS = {
   "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
   "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER",
   "CHAT_MSG_SAY", "CHAT_MSG_WHISPER", "CHAT_MSG_WHISPER_INFORM",
-  "CHAT_MSG_ADDON",
+  "CHAT_MSG_ADDON", "CHAT_MSG_SYSTEM",
 }
+
+-- "No player named '%s' is currently playing." as a Lua pattern, so a
+-- whisper the server bounced still counts as sent.
+local function notFoundPattern()
+  local fmt = ERR_CHAT_PLAYER_NOT_FOUND_S
+  if type(fmt) ~= "string" then return nil end
+  local escaped = fmt:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
+  return "^" .. escaped:gsub("%%%%s", ".+") .. "$"
+end
 
 local function markUnreadable(kind)
   for nonce, rec in pairs(pending) do
@@ -302,8 +317,23 @@ local function markUnreadable(kind)
   end
 end
 
+local function onSystem(msg)
+  local pattern = notFoundPattern()
+  if not pattern then return end
+  local ok, hit = pcall(function() return msg:find(pattern) ~= nil end)
+  if not ok or not hit then return end
+  for _, rec in ipairs(results) do
+    if rec.status == "WAITING" and rec.chatType == "WHISPER" then
+      rec.status = "SENT (cible introuvable)"
+      pending[rec.nonce] = nil
+      return
+    end
+  end
+end
+
 local function onChat(event, ...)
   if not next(pending) then return end
+  if event == "CHAT_MSG_SYSTEM" then return onSystem((...)) end
   local kind = (event == "CHAT_MSG_ADDON") and "addon" or "chat"
   local a1, a2 = ...
   local ok, nonce = pcall(function()
