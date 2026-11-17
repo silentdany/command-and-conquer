@@ -132,6 +132,10 @@ local function verdict(list)
     return "OK : la roue peut envoyer dès le glissé, sans clic ni relâchement."
   elseif ok.slash or ok.binding then
     return "Envoi seulement depuis une action clavier : la roue enverra au relâchement de la touche."
+  elseif ok.secure then
+    return "Macro sécurisée OK : la roue enverra au relâchement de la touche, par un bouton sécurisé."
+  elseif ok.editbox then
+    return "Pré-remplissage OK : la roue écrit la ligne, le joueur tape Entrée."
   elseif ok.addon then
     return "/bg bloqué pour les add-ons, mais les messages add-on passent : affichage partagé entre joueurs équipés possible."
   end
@@ -228,6 +232,66 @@ local function attempt(trigger, chatType, kind)
       pending[nonce] = nil
     end
   end)
+end
+
+-- Manual tests: the player sends the line, the probe only waits for the echo.
+local function track(trigger, chatType, timeout)
+  seq = seq + 1
+  local nonce = ("%d%02d"):format(math.random(100, 999), seq % 100)
+  local rec = {
+    trigger = trigger, chatType = chatType, kind = "chat", nonce = nonce,
+    status = "WAITING", ctx = context(),
+  }
+  wipe(results)
+  wipe(pending)
+  results[1] = rec
+  pending[nonce] = rec
+  lastRecord = rec
+  C_Timer.After(timeout, function()
+    if rec.status == "WAITING" then
+      rec.status = "NO ECHO"
+      pending[nonce] = nil
+    end
+  end)
+  scheduleReport(timeout + 0.5)
+  return rec
+end
+
+-- Secure macro button: the click is a hardware event and the macro runs
+-- through Blizzard's own code, like a macro the player wrote.
+local secureButton
+local function nextSecureText()
+  local rec = track("secure", "macro /bg", ECHO_TIMEOUT)
+  return ("/bg CnC secure test #%s, please ignore"):format(rec.nonce)
+end
+
+local function showSecureButton()
+  if InCombatLockdown() then
+    out("Hors combat seulement (le bouton se prépare avant le combat).")
+    return
+  end
+  if not secureButton then
+    local b = CreateFrame("Button", "CnCProbeSecureButton", UIParent,
+      "SecureActionButtonTemplate, UIPanelButtonTemplate")
+    b:SetSize(240, 34)
+    b:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
+    b:SetText("CnC : test macro /bg")
+    b:RegisterForClicks("AnyUp", "AnyDown")
+    b:SetAttribute("type", "macro")
+    b:SetAttribute("macrotext", "/bg CnC secure test, please ignore")
+    -- Fresh nonce for each click, set just before the secure click runs.
+    -- A click sends a down and an up event; the macro runs on one of them.
+    -- Only the first edge sets a new nonce so both edges share the same text.
+    local lastAt = 0
+    b:SetScript("PreClick", function(self)
+      if InCombatLockdown() or GetTime() - lastAt < 1 then return end
+      lastAt = GetTime()
+      self:SetAttribute("macrotext", nextSecureText())
+    end)
+    secureButton = b
+  end
+  secureButton:Show()
+  out("Clique le bouton en haut de l'écran (hors combat). Rapport ~5 s après. /cnct hide pour le cacher.")
 end
 
 local onUpdateFrame = CreateFrame("Frame")
@@ -383,6 +447,7 @@ end
 local function help()
   out("/cnct info : version du client et API disponibles")
   out("/cnct run [auto|bg|instance|battleground|party|raid|say|whisper] : lance les tests (auto par défaut)")
+  out("/cnct secure : bouton de test « macro /bg » à cliquer (hors combat)")
   out("/cnct editbox : pré-remplit une ligne /bg, à envoyer avec Entrée")
   out("/cnct report : réaffiche le dernier rapport")
   out("/cnct clear : vide l'historique sauvegardé")
@@ -398,7 +463,13 @@ SlashCmdList.CNCPROBE = function(input)
   elseif cmd == "info" then
     info()
   elseif cmd == "editbox" then
-    openChat("/bg CnC add-on test (manual), please ignore")
+    local rec = track("editbox", "editbox /bg", 30)
+    openChat(("/bg CnC editbox test #%s, please ignore"):format(rec.nonce))
+    out("Ligne pré-remplie : tape Entrée dans les 30 s.")
+  elseif cmd == "secure" then
+    showSecureButton()
+  elseif cmd == "hide" then
+    if secureButton and not InCombatLockdown() then secureButton:Hide() end
   elseif cmd == "report" then
     report()
   elseif cmd == "clear" then
