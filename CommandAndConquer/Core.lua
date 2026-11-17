@@ -25,6 +25,13 @@ end
 
 local pendingSetup = false
 
+-- /cnc debug prints what the wheel sees, to diagnose in game.
+function ns.Debug(fmt, ...)
+  if not ns.debug then return end
+  local text = select("#", ...) > 0 and fmt:format(...) or fmt
+  DEFAULT_CHAT_FRAME:AddMessage("|cff999999[C&C debug]|r " .. text)
+end
+
 local function playerFullName()
   local name, realm
   if UnitFullName then name, realm = UnitFullName("player") end
@@ -149,6 +156,9 @@ SlashCmdList.COMMANDANDCONQUER = function(input)
     out("wheel size %.2f.", value)
   elseif cmd == "status" then
     status()
+  elseif cmd == "debug" then
+    ns.debug = not ns.debug
+    out("debug %s.", ns.debug and "ON (prints to chat while the wheel is used)" or "OFF")
   else
     help()
   end

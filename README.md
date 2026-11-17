@@ -56,6 +56,7 @@ Ensuite :
 2. Automatique : en BG les calls partent en /bg ; ailleurs ils te sont chuchotés, pour t'entraîner.
 3. `/cnc scale 1.3` : taille de la roue (0.6 à 2, défaut 1).
 4. `/cnc status` : mode, taille et touches liées.
+5. `/cnc debug` : affiche dans le chat ce que la roue voit (diagnostic).
 
 ## Structure
 

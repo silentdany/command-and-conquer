@@ -387,15 +387,25 @@ function W:Build()
   -- Right-click catcher: covers the screen while the wheel is open (child
   -- of the root), under the nodes so their OnEnter still fires. Left
   -- clicks pass through to the game when the client supports it.
-  local catcher = CreateFrame("Button", "CnCWheelRightClick", root, "SecureActionButtonTemplate")
+  -- Standard secure click handler (_onclick runs in the restricted
+  -- environment on the catcher itself; v0.5.1 wrapped a secure action
+  -- button instead and did not react in game).
+  local catcher = CreateFrame("Button", "CnCWheelRightClick", root, "SecureHandlerClickTemplate")
   catcher:SetAllPoints(screen)
   catcher:SetFrameLevel(root:GetFrameLevel())
+  catcher:EnableMouse(true)
   catcher:RegisterForClicks("RightButtonDown")
-  catcher:SetScript("OnClick", function() end)
   if catcher.SetPassThroughButtons then
     pcall(catcher.SetPassThroughButtons, catcher, "LeftButton")
   end
-  header:WrapScript(catcher, "OnClick", ON_RIGHT)
+  catcher:SetFrameRef("send", send)
+  catcher:SetFrameRef("root", root)
+  catcher:SetFrameRef("screen", screen)
+  for r = 1, #rings do catcher:SetFrameRef("r" .. r, rings[r]) end
+  catcher:SetAttribute("_onclick", "local owner = self\n" .. ON_RIGHT)
+  catcher:HookScript("OnMouseDown", function(_, mouseButton)
+    ns.Debug("catcher got mouse down: %s", tostring(mouseButton))
+  end)
   for _, ring in ipairs(rings) do
     for _, node in ipairs(ring.nodes) do header:WrapScript(node, "OnEnter", ON_ENTER) end
     if ring.center then header:WrapScript(ring.center, "OnEnter", ON_ENTER) end
@@ -422,7 +432,10 @@ function W:Build()
   -- Plain frame inside the root: shown only while the wheel is open.
   local aim = CreateFrame("Frame", nil, root)
   aim:SetSize(1, 1)
-  aim:SetScript("OnUpdate", function() W:UpdateAim() end)
+  aim:SetScript("OnUpdate", function()
+    W:UpdateAim()
+    if ns.debug then W:DebugRightClick() end
+  end)
 
   -- What will be sent, above the active ring. Plain (insecure) frame so
   -- add-on code can move it in combat.
@@ -517,9 +530,33 @@ function W:ShowToast(msg)
   end
 end
 
+-- /cnc debug: who gets the right click while the wheel is open.
+function W:DebugRightClick()
+  local down = IsMouseButtonDown and IsMouseButtonDown("RightButton")
+  if down and not self.debugRight then
+    local focus
+    if GetMouseFoci then
+      focus = GetMouseFoci()[1]
+    elseif GetMouseFocus then
+      focus = GetMouseFocus()
+    end
+    local name = focus and (focus.GetName and focus:GetName() or tostring(focus)) or "world (no frame)"
+    ns.Debug("right button down, frame under cursor: %s", tostring(name))
+  end
+  self.debugRight = down
+end
+
 function W:Refresh()
   local send = self.send
   local state = send:GetAttribute("state")
+  ns.Debug("state %s (step %s, path %s)", tostring(state), tostring(send:GetAttribute("step")),
+    tostring(send:GetAttribute("path")))
+  if state == "open" and ns.debug then
+    local c = self.catcher
+    ns.Debug("catcher shown %s, visible %s, mouse %s, level %d (root %d), strata %s",
+      tostring(c:IsShown()), tostring(c:IsVisible()), tostring(c:IsMouseEnabled()),
+      c:GetFrameLevel(), self.root:GetFrameLevel(), c:GetFrameStrata())
+  end
 
   if state == "closed" then
     self.preview:Hide()

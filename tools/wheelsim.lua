@@ -80,6 +80,9 @@ function Frame:GetCenter()
 end
 function Frame:GetWidth() return 1920 end
 function Frame:GetEffectiveScale() return 1 end
+function Frame:GetFrameLevel() return 5 end
+function Frame:GetFrameStrata() return "FULLSCREEN_DIALOG" end
+function Frame:IsMouseEnabled() return true end
 cursorX, cursorY = 500, 400
 function GetCursorPosition() return cursorX, cursorY end
 function Frame:GetHeight() return 1080 end
@@ -127,8 +130,16 @@ local function press(key, down)
     print("  MACRO RUN: " .. send.attrs.macrotext)
   end
 end
+-- The catcher is a SecureHandlerClickTemplate: its _onclick attribute runs
+-- in the restricted environment with self = the catcher.
 local function rightClick()
-  if ns.Wheel.catcher:IsVisible() then runSnippet(ns.Wheel.catcher, "OnClick", "RightButton", true) end
+  local c = ns.Wheel.catcher
+  if not c:IsVisible() then return end
+  local env = setmetatable({ self = c, button = "RightButton", down = true, tonumber = tonumber, tostring = tostring, string = string, math = math },
+    { __index = function(_, k) error("restricted env: unknown global " .. tostring(k), 2) end })
+  local fn = assert(loadstring(c.attrs._onclick, "=_onclick"))
+  setfenv(fn, env)
+  fn()
 end
 local function enter(node)
   if not node:IsVisible() then return end
@@ -281,4 +292,9 @@ W:UpdateAim(); assert(W.aim == 2, "aim " .. tostring(W.aim))
 cursorX, cursorY = 500, 400 + 20        -- hollow center
 W:UpdateAim(); assert(W.aim == 0)
 press("BUTTON4", false)
+print("== 17. /cnc debug does not break anything")
+SlashCmdList.COMMANDANDCONQUER("debug")
+press("BUTTON4", true); moveTo(r1.nodes[1]); rightClick(); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4", false)
+assert(last() == "/bg I have their flag, escort me", last())
+SlashCmdList.COMMANDANDCONQUER("debug")
 print("ALL OK, sent " .. #sent .. " messages")
