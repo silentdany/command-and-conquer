@@ -20,10 +20,12 @@ ns.Wheel = W
 local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local BUTTON_NAME = "CnCWheelButton"
 
+-- Big centers are dead zones: small hand jitter right after a ring opens
+-- under the cursor picks nothing (v0.1 felt too sensitive in game).
 local RINGS = {
-  { n = 5, radius = 84, size = 70 },              -- actions
-  { n = 8, radius = 86, size = 62, center = 46 }, -- choices
-  { n = 5, radius = 64, size = 46 },              -- enemy count (INC)
+  { n = 5, radius = 104, size = 78 },              -- actions
+  { n = 8, radius = 112, size = 72, center = 80 }, -- choices (center = cancel)
+  { n = 5, radius = 96, size = 58, center = 72 },  -- enemy count (center = no number)
 }
 
 local COLOR_IDLE = { 0.05, 0.05, 0.07, 0.62 }
@@ -92,7 +94,7 @@ local ON_CLICK = [[
 ]]
 
 -- Mouse enters a node. Ring 1 = action, ring 2 = choice (idx 0 = center,
--- cancels), ring 3 = enemy count.
+-- cancels), ring 3 = enemy count (idx 0 = center, no number).
 local ON_ENTER = [[
   local send = owner:GetFrameRef("send")
   local ring = self:GetAttribute("ring")
@@ -129,7 +131,11 @@ local ON_ENTER = [[
   else
     local c = send:GetAttribute("c")
     send:SetAttribute("k", idx)
-    send:SetAttribute("msg", send:GetAttribute("m" .. a .. "-" .. c .. "-" .. idx))
+    if idx == 0 then
+      send:SetAttribute("msg", send:GetAttribute("m" .. a .. "-" .. c))
+    else
+      send:SetAttribute("msg", send:GetAttribute("m" .. a .. "-" .. c .. "-" .. idx))
+    end
   end
   send:SetAttribute("state", send:GetAttribute("step") .. ":" .. a .. ":"
     .. send:GetAttribute("c") .. ":" .. send:GetAttribute("k"))
@@ -358,6 +364,10 @@ function W:Refresh()
   local k = send:GetAttribute("k") or 0
   local action = ns.ACTIONS[a]
 
+  -- Ring 3 center shows the place locked in by step 2.
+  local center3 = self.rings[3].center
+  center3.text:SetText(action and c > 0 and action.choices[c].label or "")
+
   if action and self.labelsFor ~= a then
     self.labelsFor = a
     for i, node in ipairs(self.rings[2].nodes) do
@@ -383,6 +393,14 @@ function W:Refresh()
   else
     self.preview:Hide()
   end
+end
+
+-- Rings are anchored with zero offsets, so scaling them keeps the wheel
+-- centered on the cursor. Out of combat only.
+function W:SetScale(scale)
+  if InCombatLockdown() then return false end
+  for _, ring in ipairs(self.rings) do ring:SetScale(scale) end
+  return true
 end
 
 function W:SetPrefix(prefix)

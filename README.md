@@ -34,7 +34,8 @@ Copier le dossier `CommandAndConquer` dans `Interface/AddOns/` du client Forever
 
 1. Échap > Raccourcis > AddOns > Command & Conquer : lier « Call wheel » à une touche (un bouton latéral de souris est idéal).
 2. `/cnc test` : mode test, les calls te sont chuchotés au lieu de partir en /bg. Refaire `/cnc test` pour revenir en /bg.
-3. `/cnc status` : mode et touches liées.
+3. `/cnc scale 1.3` : taille de la roue (0.6 à 2, défaut 1).
+4. `/cnc status` : mode, taille et touches liées.
 
 ## Structure
 
@@ -50,5 +51,5 @@ Copier le dossier `CommandAndConquer` dans `Interface/AddOns/` du client Forever
 | Jalon | Statut |
 |---|---|
 | 1. Un add-on peut-il écrire en /bg sur Forever ? | Fait : non en direct, oui par bouton sécurisé |
-| 2. Prototype de la roue (étapes 1 à 3) | v0.1 prête, à tester en jeu |
+| 2. Prototype de la roue (étapes 1 à 3) | v0.1 testée en jeu par Dany (marche, trop sensible) ; v0.2 : roue plus grande, centres neutres, `/cnc scale` |
 | 3. Premier essai en BG réel | À faire |

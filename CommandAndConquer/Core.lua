@@ -80,6 +80,7 @@ local function setup()
   pendingSetup = false
   W:Build()
   W:SetPrefix(currentPrefix())
+  W:SetScale(CnCDB.scale or 1)
   local count = applyBindings()
   if count == 0 then
     out("bind a key in Esc > Key Bindings > AddOns > Command & Conquer.")
@@ -94,11 +95,12 @@ local function help()
   out("hold your wheel key, flick toward an action, then a choice, release to send.")
   out("Back to the center before release = nothing sent.")
   out("/cnc test : toggle test mode (whisper yourself instead of /bg)")
+  out("/cnc scale <0.6-2> : wheel size (default 1)")
   out("/cnc status : show mode and bound keys")
 end
 
 local function status()
-  out("mode: %s", CnCDB.test and "TEST (whisper to yourself)" or "/bg")
+  out("mode: %s, size %.2f", CnCDB.test and "TEST (whisper to yourself)" or "/bg", CnCDB.scale or 1)
   for _, b in ipairs(BINDINGS) do
     local keys = { GetBindingKey(b.name) }
     if #keys > 0 then out("  %s: %s", _G["BINDING_NAME_" .. b.name], table.concat(keys, ", ")) end
@@ -107,7 +109,7 @@ end
 
 SLASH_COMMANDANDCONQUER1 = "/cnc"
 SlashCmdList.COMMANDANDCONQUER = function(input)
-  local cmd = (input or ""):lower():match("^%s*(%S*)")
+  local cmd, arg = (input or ""):lower():match("^%s*(%S*)%s*(%S*)")
   if cmd == "test" then
     if InCombatLockdown() then
       out("can't change mode in combat.")
@@ -116,6 +118,18 @@ SlashCmdList.COMMANDANDCONQUER = function(input)
     CnCDB.test = not CnCDB.test
     W:SetPrefix(currentPrefix())
     out("test mode %s.", CnCDB.test and "ON: calls are whispered to you" or "OFF: calls go to /bg")
+  elseif cmd == "scale" then
+    local value = tonumber(arg)
+    if not value or value < 0.6 or value > 2 then
+      out("usage: /cnc scale <0.6-2> (now %.2f)", CnCDB.scale or 1)
+      return
+    end
+    if not W:SetScale(value) then
+      out("can't change size in combat.")
+      return
+    end
+    CnCDB.scale = value
+    out("wheel size %.2f.", value)
   elseif cmd == "status" then
     status()
   else

@@ -188,4 +188,17 @@ print("== 9. Every message fits a macro (255)")
 for k, v in pairs(send.attrs) do
   if type(k) == "string" and k:match("^m%d") then assert(#v + 30 < 255) end
 end
+print("== 10. INC > Roof > 4 then back to center = no number")
+SlashCmdList.COMMANDANDCONQUER("test")
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[2])
+assert(r3.center.text.t == "Roof", tostring(r3.center.text.t))
+moveTo(r3.nodes[4]); moveTo(r3.center)
+press("BUTTON4", false)
+assert(sent[#sent] == "/bg Incoming on our roof", sent[#sent])
+
+print("== 11. /cnc scale")
+SlashCmdList.COMMANDANDCONQUER("scale 1.4")
+assert(CnCDB.scale == 1.4)
+SlashCmdList.COMMANDANDCONQUER("scale 9")
+assert(CnCDB.scale == 1.4)
 print("ALL OK, sent " .. #sent .. " messages")
