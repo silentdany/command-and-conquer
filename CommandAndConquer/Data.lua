@@ -20,10 +20,16 @@
 --
 -- icon = file in Media/icons (game-icons.net, see CREDITS.md).
 -- enemy = true draws the icon red: a place on their side.
--- countRing = which secure ring shows the counts (3: 5 sectors, 4: 6 sectors);
--- counts = the labels on that ring for this action.
+-- counts = labels of the optional count ring for this action. Every
+-- optional ring has a CANCEL sector bottom left (sector 5 of 6, 3 of 3):
+-- the right click could not be made to work, Dany needs a way out.
 
 local _, ns = ...
+
+ns.CANCEL = "CANCEL"
+ns.COUNT_RING = 3
+ns.SIDE_RING = 4
+local CANCEL = ns.CANCEL
 
 -- Optional ping sent with the call, through the same secure macro
 -- ("/ping" with a unit, tested OK in a battleground on 17/11/2026). Macro
@@ -61,7 +67,7 @@ ns.ACTIONS = {
   },
   {
     key = "EFC", label = "EFC", icon = "efc", ping = PING_ENEMY_ATTACK,
-    countRing = 4, counts = { "ALONE", "1", "2", "3", "4", "5+" }, -- escorts (17/11/2026)
+    counts = { "ALONE", "1", "2", "3", CANCEL, "4+" }, -- escorts (17/11/2026)
     choices = {
       { label = "EFR", icon = "flag", enemy = true, msg = "Enemy carrier in their flag room" },
       { label = "E-ROOF", icon = "roof", enemy = true, msg = "Enemy carrier on their roof" },
@@ -88,7 +94,7 @@ ns.ACTIONS = {
   },
   {
     key = "SCOUT", label = "SCOUT", icon = "scout", ping = PING_ENEMY_WARNING,
-    countRing = 4, counts = { "CLEAR", "1", "2", "3", "4", "5+" },
+    counts = { "CLEAR", "1", "2", "3", CANCEL, "4+" },
     -- Their side as seen by a scout (added 17/11/2026).
     choices = {
       { label = "EFR", icon = "flag", enemy = true, where = "in their flag room", place = "Their flag room" },
@@ -101,7 +107,7 @@ ns.ACTIONS = {
   },
   {
     key = "INC", label = "INC", icon = "inc", ping = PING_ENEMY_WARNING,
-    countRing = 3, counts = { "1", "2", "3", "4", "5+" },
+    counts = { "1", "2", "3", "4", CANCEL, "5+" },
     choices = {
       { label = "FR", icon = "flag", msg = "Incoming in our flag room" },
       { label = "ROOF", icon = "roof", msg = "Incoming on our roof" },
@@ -122,7 +128,7 @@ end
 ns.DIRECT = { CNC_DEF = 1, CNC_FLAG = 2, CNC_EFC = 3, CNC_ATTACK = 4, CNC_SCOUT = 5, CNC_INC = 6 }
 
 -- Side ring, clockwise from the top: their base is "up", ours "down".
-ns.SIDES = { "THEIRS", "OURS" }
+ns.SIDES = { "THEIRS", "OURS", CANCEL }
 
 -- Messages for each count of a choice, in count ring order. base is the
 -- message picked so far (with the side for EFC).
@@ -132,7 +138,9 @@ ns.SIDES = { "THEIRS", "OURS" }
 function ns.CountMessages(action, choice, base)
   local list = {}
   for k, count in ipairs(action.counts) do
-    if action.key == "EFC" then
+    if count == CANCEL then
+      -- no message: the cancel sector
+    elseif action.key == "EFC" then
       if count == "ALONE" then
         list[k] = base .. ", alone"
       elseif count == "1" then
@@ -166,19 +174,21 @@ function ns.BuildTree()
       msgs[path] = choice.msg
       local countable = { [path] = choice.msg }
       if choice.ours then
-        nexts[path] = 5
+        nexts[path] = ns.SIDE_RING
         countable = {}
         for side, name in ipairs(ns.SIDES) do
-          local sidePath = path .. "-" .. side
-          local msg = (name == "OURS") and choice.ours or choice.theirs
-          msgs[sidePath] = msg
-          countable[sidePath] = msg
+          if name ~= CANCEL then
+            local sidePath = path .. "-" .. side
+            local msg = (name == "OURS") and choice.ours or choice.theirs
+            msgs[sidePath] = msg
+            countable[sidePath] = msg
+          end
         end
       end
-      if action.countRing then
+      if action.counts then
         for p, base in pairs(countable) do
-          nexts[p] = action.countRing
-          for k, msg in ipairs(ns.CountMessages(action, choice, base)) do
+          nexts[p] = ns.COUNT_RING
+          for k, msg in pairs(ns.CountMessages(action, choice, base)) do
             msgs[p .. "-" .. k] = msg
           end
         end

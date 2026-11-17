@@ -10,8 +10,9 @@ Tout l'add-on est en anglais pour le moment.
 3. Glisser vers un choix (6 par action).
 4. Étapes suivantes, toutes optionnelles (relâcher au milieu envoie ce qui est déjà choisi) :
    - INC : nombre d'ennemis, 1 à 5+ ;
-   - SCOUT : CLEAR, 1 à 5+ ;
-   - EFC rampe, tunnel ou GY : côté (THEIRS en haut, OURS en bas), puis escorteurs (ALONE, 1 à 5+) ; EFC salle, toit, mid : escorteurs directement.
+   - SCOUT : CLEAR, 1 à 4+ ;
+   - EFC rampe, tunnel ou GY : côté (THEIRS en haut, OURS en bas à droite), puis escorteurs (ALONE, 1 à 4+) ; EFC salle, toit, mid : escorteurs directement.
+   - Chaque étape optionnelle a une case **CANCEL** en bas à gauche (croix rouge) : passer dessus annule tout, rien ne part au relâchement (sauf si le curseur repart vers une autre case).
 5. Relâcher la touche : le message part en /bg. Revenir au centre avant de relâcher = rien n'est envoyé.
 
 Le choix se déclenche quand le curseur atteint l'icône d'une part ; la part visée s'éclaire avant.

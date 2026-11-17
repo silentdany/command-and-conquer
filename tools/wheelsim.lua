@@ -136,7 +136,9 @@ local function enter(node)
 end
 -- Move the mouse onto a node: emulate OnEnter for visible node under cursor.
 local function moveTo(node) enter(node) end
-local r1, r2, r3, r4, r5 = W.rings[1], W.rings[2], W.rings[3], W.rings[4], W.rings[5]
+local r1, r2, r3, r4 = W.rings[1], W.rings[2], W.rings[3], W.rings[4]
+-- Ring 3 = counts: INC 1,2,3,4,CANCEL,5+ / SCOUT CLEAR,1,2,3,CANCEL,4+ / EFC ALONE,1,2,3,CANCEL,4+
+-- Ring 4 = side: THEIRS, OURS, CANCEL
 -- Indices: actions 1 DEF, 2 FLAG, 3 EFC, 4 ATTACK, 5 SCOUT, 6 INC.
 -- Places: 1 FR, 2 ROOF, 3 RAMP, 4 TUN, 5 GY, 6 MID (or action specific).
 -- First line of the last macro = the chat message; second line = the ping.
@@ -174,46 +176,46 @@ press("BUTTON4", true); press("BUTTON4", false); assert(#sent == n)
 
 print("== 6. Direct INC key > GY > 5+")
 press("SHIFT-BUTTON4", true); assert(r2:IsShown() and not r1:IsShown())
-moveTo(r2.nodes[5]); moveTo(r3.nodes[5]); press("SHIFT-BUTTON4", false)
+moveTo(r2.nodes[5]); moveTo(r3.nodes[6]); press("SHIFT-BUTTON4", false)
 assert(last() == "/bg 5+ incoming at our graveyard side", last())
 
 print("== 7. SCOUT > EFR > 3, CLEAR, 1, no number")
 press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1])
-assert(r4:IsShown() and not r3:IsShown())
-moveTo(r4.nodes[4]); press("BUTTON4", false)
+assert(r3:IsShown() and not r4:IsShown())
+moveTo(r3.nodes[4]); press("BUTTON4", false)
 assert(last() == "/bg 3 enemies in their flag room", last())
-press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1]); moveTo(r4.nodes[1]); press("BUTTON4", false)
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1]); moveTo(r3.nodes[1]); press("BUTTON4", false)
 assert(last() == "/bg Their flag room is clear", last())
-press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[6]); moveTo(r4.nodes[2]); press("BUTTON4", false)
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[6]); moveTo(r3.nodes[2]); press("BUTTON4", false)
 assert(last() == "/bg 1 enemy at mid", last())
-press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[2]); moveTo(r4.center); press("BUTTON4", false)
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[2]); moveTo(r3.center); press("BUTTON4", false)
 assert(last() == "/bg Enemies on their roof", last())
 
 print("== 9b. EFC: side step, escorts, all optional")
 press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4])
-assert(r5:IsShown() and not r4:IsShown(), "side ring expected")
-moveTo(r5.nodes[1])                       -- THEIRS (top)
-assert(r4:IsShown() and r4.nodes[1].big.t == "ALONE", tostring(r4.nodes[1].big.t))
-moveTo(r4.nodes[4]); press("BUTTON4", false)
+assert(r4:IsShown() and not r3:IsShown(), "side ring expected")
+moveTo(r4.nodes[1])                       -- THEIRS (top)
+assert(r3:IsShown() and r3.nodes[1].big.t == "ALONE", tostring(r3.nodes[1].big.t))
+moveTo(r3.nodes[4]); press("BUTTON4", false)
 assert(last() == "/bg Enemy carrier entering their tunnel with 3 escorts", last())
 
 press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); press("BUTTON4", false)
 assert(last() == "/bg Enemy carrier at the tunnel", last())          -- released at the side step
 
-press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[3]); moveTo(r5.nodes[2]); press("BUTTON4", false)
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[3]); moveTo(r4.nodes[2]); press("BUTTON4", false)
 assert(last() == "/bg Enemy carrier at our ramp", last())            -- released at the escort step
 
-press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[5]); moveTo(r5.nodes[2]); moveTo(r4.nodes[2]); press("BUTTON4", false)
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[5]); moveTo(r4.nodes[2]); moveTo(r3.nodes[2]); press("BUTTON4", false)
 assert(last() == "/bg Enemy carrier at our graveyard side with 1 escort", last())
 
 press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[2])
-assert(r4:IsShown() and not r5:IsShown(), "roof has no side step")
-moveTo(r4.nodes[1]); press("BUTTON4", false)
+assert(r3:IsShown() and not r4:IsShown(), "roof has no side step")
+moveTo(r3.nodes[1]); press("BUTTON4", false)
 assert(last() == "/bg Enemy carrier on their roof, alone", last())
 
 print("== 9d. SCOUT count labels")
 press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1])
-assert(r4.nodes[1].big.t == "CLEAR", tostring(r4.nodes[1].big.t))
+assert(r3.nodes[1].big.t == "CLEAR", tostring(r3.nodes[1].big.t))
 press("BUTTON4", false)
 assert(last() == "/bg Enemies in their flag room", last())
 
@@ -248,7 +250,7 @@ press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4
 assert(last() == "/bg I have their flag, escort me", last())
 SlashCmdList.COMMANDANDCONQUER("debug")
 print("== 18. Pings sent with calls")
-press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); moveTo(r5.nodes[1]); press("BUTTON4", false)
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); moveTo(r4.nodes[1]); press("BUTTON4", false)
 assert(lastPing() == "/ping [@target,harm,nodead] attack", tostring(lastPing()))
 press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4", false)
 assert(lastPing() == "/ping [@player] assist", tostring(lastPing()))
@@ -266,4 +268,19 @@ assert(last() == "/bg Enemy carrier at mid" and lastPing() == nil, tostring(last
 SlashCmdList.COMMANDANDCONQUER("ping")
 press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[6]); press("BUTTON4", false)
 assert(lastPing() == "/ping [@target,harm,nodead] attack", tostring(lastPing()))
+print("== 19. CANCEL in optional steps")
+local n = #sent
+press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[4]); moveTo(r3.nodes[5]); press("BUTTON4", false)
+assert(#sent == n, "INC count CANCEL sent something")
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); moveTo(r4.nodes[3]); press("BUTTON4", false)
+assert(#sent == n, "EFC side CANCEL sent something")
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); moveTo(r4.nodes[2]); moveTo(r3.nodes[5]); press("BUTTON4", false)
+assert(#sent == n, "EFC escorts CANCEL sent something")
+-- Change of mind: CANCEL, then a count.
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1]); moveTo(r3.nodes[5]); moveTo(r3.nodes[6]); press("BUTTON4", false)
+assert(last() == "/bg 4+ enemies in their flag room", last())
+-- CANCEL, then the center: sends without the optional step.
+press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[3]); moveTo(r3.nodes[5]); moveTo(r3.center); press("BUTTON4", false)
+assert(last() == "/bg Incoming at our ramp", last())
+assert(r3.nodes[5].label.t == "CANCEL" and r4.nodes[3].label.t == "CANCEL")
 print("ALL OK, sent " .. #sent .. " messages")

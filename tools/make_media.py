@@ -6,8 +6,7 @@ Usage, from the repo root:
     python3 tools/make_media.py package/icons.json
 
 Writes CommandAndConquer/Media/:
-    sector2_fill.tga, sector2_border.tga   one half of a 2-part wheel, pointing up
-    sector5_fill.tga, sector5_border.tga   one sector of a 5-part wheel, pointing up
+    sector3_fill.tga, sector3_border.tga   one sector of a 3-part wheel, pointing up
     sector6_fill.tga, sector6_border.tga   one sector of a 6-part wheel, pointing up
     center.tga                              center disc with its border
     icons/<name>.tga                        white game-icons.net icons, 64x64
@@ -44,22 +43,16 @@ ICONS = {
     "attack": "broadsword",
     "inc": "hazard-sign",
     "scout": "spyglass",
+    "cancel": "cancel",
     "roof": "house",
     "ramp": "stairs",
     "tunnel": "dungeon-gate",
     "gy": "tombstone",
-    "balcony": "watchtower",
     "mid": "crossroad",
-    "banana": "banana",
-    "lobby": "doorway",
     "escort": "guards",
-    "turtle": "turtle-shell",
     "zerg": "rally-the-troops",
     "help": "medical-pack",
     "cap": "trophy-cup",
-    "stuck": "padlock",
-    "pickup": "grab",
-    "dropped": "plain-arrow",
 }
 
 
@@ -149,8 +142,7 @@ def make_icons(icons_json):
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
-    make_sectors(2)
-    make_sectors(5)
+    make_sectors(3)
     make_sectors(6)
     make_center()
     make_icons(sys.argv[1])

@@ -31,9 +31,8 @@ local BUTTON_NAME = "CnCWheelButton"
 local RINGS = {
   { n = 6, outer = 160, icon = 46, hit = 58 },                -- actions
   { n = 6, outer = 165, icon = 44, hit = 56, center = true }, -- choices
-  { n = 5, outer = 140, icon = 0, hit = 52, center = true },  -- INC count
-  { n = 6, outer = 150, icon = 0, hit = 52, center = true },  -- SCOUT / EFC count
-  { n = 2, outer = 120, icon = 0, hit = 60, center = true },  -- side: theirs (top), ours (bottom)
+  { n = 6, outer = 150, icon = 0, hit = 52, center = true, cancel = 5 }, -- counts (optional)
+  { n = 3, outer = 125, icon = 0, hit = 58, center = true, cancel = 3 }, -- side: theirs, ours (optional)
 }
 local INNER_RATIO = 0.32 -- inner radius / outer radius, baked in the textures
 local TEX_RATIO = 0.96   -- wheel diameter / texture size, baked in the textures
@@ -42,6 +41,7 @@ local ICON_RATIO = 0.66  -- icon distance from the center / outer radius
 local COLOR_IDLE = { 0.07, 0.065, 0.06, 0.78 }
 local COLOR_AIM = { 0.20, 0.19, 0.18, 0.80 }
 local COLOR_HOT = { 0.60, 0.59, 0.56, 0.50 }
+local COLOR_CANCEL_HOT = { 0.70, 0.12, 0.10, 0.70 }
 local COLOR_ENEMY = { 0.86, 0.20, 0.18, 1 }
 local COLOR_LABEL = { 0.93, 0.93, 0.93, 1 }
 
@@ -139,7 +139,13 @@ local ON_ENTER = [[
     return
   end
   local base = send:GetAttribute("base")
-  if idx == 0 then
+  if self:GetAttribute("cancel") then
+    -- CANCEL sector of an optional ring: nothing is sent unless the
+    -- cursor moves on to another sector.
+    send:SetAttribute("path", base)
+    send:SetAttribute("sel" .. ring, idx)
+    send:SetAttribute("msg", "")
+  elseif idx == 0 then
     send:SetAttribute("path", base)
     send:SetAttribute("sel" .. ring, 0)
     if ring == 2 then
@@ -269,6 +275,7 @@ local function makeRing(root, ringIndex)
     local bearing = math.rad((i - 1) * 360 / spec.n)
     local r = spec.outer * ICON_RATIO
     local node = makeNode(ring, ringIndex, i, spec)
+    if i == spec.cancel then node:SetAttribute("cancel", true) end
     node:SetPoint("CENTER", ring, "CENTER", math.sin(bearing) * r, math.cos(bearing) * r)
     ring.nodes[i] = node
   end
@@ -348,10 +355,21 @@ function W:Build()
     for _, node in ipairs(rings[r].nodes) do node.icon:Hide() end
   end
   for s, side in ipairs(ns.SIDES) do
-    local node = rings[5].nodes[s]
-    node.big:SetText(side)
-    node.big:SetFont(STANDARD_TEXT_FONT, 16, "")
-    if side == "THEIRS" then setColor(node.big, COLOR_ENEMY) end
+    if side ~= ns.CANCEL then
+      local node = rings[ns.SIDE_RING].nodes[s]
+      node.big:SetText(side)
+      node.big:SetFont(STANDARD_TEXT_FONT, 16, "")
+      if side == "THEIRS" then setColor(node.big, COLOR_ENEMY) end
+    end
+  end
+  -- Cancel sectors: red cross, same place (bottom left) on every optional ring.
+  for r = 3, #rings do
+    local node = rings[r].nodes[RINGS[r].cancel]
+    node.icon:SetSize(34, 34)
+    node.icon:SetTexture(ns.IconPath("cancel"))
+    setColor(node.icon, COLOR_ENEMY)
+    node.icon:Show()
+    node.label:SetText(ns.CANCEL)
   end
 
   -- Lights the sector the cursor points at, before it reaches the icon.
@@ -404,7 +422,7 @@ function W:Paint()
     local selected = (r > 1) and (send:GetAttribute("sel" .. r) or 0) or 0
     for i, fill in ipairs(ring.fills) do
       if i == selected then
-        setColor(fill, COLOR_HOT)
+        setColor(fill, i == RINGS[r].cancel and COLOR_CANCEL_HOT or COLOR_HOT)
       elseif i == aim then
         setColor(fill, COLOR_AIM)
       else
@@ -491,11 +509,13 @@ function W:Refresh()
       node.label:SetText(choice.label)
     end
     setIcon(self.rings[2].center, action)
-    if action.countRing then
-      for k, node in ipairs(self.rings[action.countRing].nodes) do
+    if action.counts then
+      for k, node in ipairs(self.rings[ns.COUNT_RING].nodes) do
         local count = action.counts[k]
-        node.big:SetText(count)
-        node.big:SetFont(STANDARD_TEXT_FONT, #count > 2 and 15 or 24, "")
+        if count ~= ns.CANCEL then
+          node.big:SetText(count)
+          node.big:SetFont(STANDARD_TEXT_FONT, #count > 2 and 15 or 24, "")
+        end
       end
     end
   end

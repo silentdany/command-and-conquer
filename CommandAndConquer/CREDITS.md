@@ -12,22 +12,17 @@ They were converted to white 64x64 TGA files by `tools/make_media.py`.
 | `efc.tga` | running-ninja |
 | `attack.tga` | broadsword |
 | `inc.tga` | hazard-sign |
+| `scout.tga` | spyglass |
+| `cancel.tga` | cancel |
 | `roof.tga` | house |
 | `ramp.tga` | stairs |
 | `tunnel.tga` | dungeon-gate |
 | `gy.tga` | tombstone |
-| `balcony.tga` | watchtower |
 | `mid.tga` | crossroad |
-| `banana.tga` | banana |
-| `lobby.tga` | doorway |
 | `escort.tga` | guards |
-| `turtle.tga` | turtle-shell |
 | `zerg.tga` | rally-the-troops |
 | `help.tga` | medical-pack |
 | `cap.tga` | trophy-cup |
-| `stuck.tga` | padlock |
-| `pickup.tga` | grab |
-| `dropped.tga` | plain-arrow |
 
 Wheel sectors and center disc (`Media/sector*.tga`, `Media/center.tga`)
 are drawn by `tools/make_media.py`.
