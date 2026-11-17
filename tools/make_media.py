@@ -6,6 +6,7 @@ Usage, from the repo root:
     python3 tools/make_media.py package/icons.json
 
 Writes CommandAndConquer/Media/:
+    sector2_fill.tga, sector2_border.tga   one half of a 2-part wheel, pointing up
     sector5_fill.tga, sector5_border.tga   one sector of a 5-part wheel, pointing up
     sector6_fill.tga, sector6_border.tga   one sector of a 6-part wheel, pointing up
     center.tga                              center disc with its border
@@ -148,6 +149,7 @@ def make_icons(icons_json):
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
+    make_sectors(2)
     make_sectors(5)
     make_sectors(6)
     make_center()

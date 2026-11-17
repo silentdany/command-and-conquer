@@ -133,7 +133,7 @@ local function enter(node)
 end
 -- Move the mouse onto a node: emulate OnEnter for visible node under cursor.
 local function moveTo(node) enter(node) end
-local r1, r2, r3, r4 = W.rings[1], W.rings[2], W.rings[3], W.rings[4]
+local r1, r2, r3, r4, r5 = W.rings[1], W.rings[2], W.rings[3], W.rings[4], W.rings[5]
 -- Indices: actions 1 DEF, 2 FLAG, 3 EFC, 4 ATTACK, 5 SCOUT, 6 INC.
 -- Places: 1 FR, 2 ROOF, 3 RAMP, 4 TUN, 5 GY, 6 MID (or action specific).
 local function last() return sent[#sent] end
@@ -171,7 +171,7 @@ press("BUTTON4", true); press("BUTTON4", false); assert(#sent == n)
 print("== 6. Direct INC key > GY > 5+")
 press("SHIFT-BUTTON4", true); assert(r2:IsShown() and not r1:IsShown())
 moveTo(r2.nodes[5]); moveTo(r3.nodes[5]); press("SHIFT-BUTTON4", false)
-assert(last() == "/bg 5+ incoming at our GY side", last())
+assert(last() == "/bg 5+ incoming at our graveyard side", last())
 
 print("== 7. SCOUT > EFR > 3, CLEAR, 1, no number")
 press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1])
@@ -201,15 +201,37 @@ assert(r1:IsShown() and not r2:IsShown())
 moveTo(r1.nodes[3]); moveTo(r2.nodes[6]); press("BUTTON4", false)
 assert(last() == "/bg Enemy carrier at mid", last())
 
-print("== 9b. EFC > Tunnel > 3 escorts, ALONE, and count labels follow the action")
+print("== 9b. EFC: side step, escorts, all optional")
 press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4])
+assert(r5:IsShown() and not r4:IsShown(), "side ring expected")
+moveTo(r5.nodes[1])                       -- THEIRS (top)
 assert(r4:IsShown() and r4.nodes[1].big.t == "ALONE", tostring(r4.nodes[1].big.t))
 moveTo(r4.nodes[4]); press("BUTTON4", false)
-assert(last() == "/bg Enemy carrier at our tunnel (EFC) with 3 escorts", last())
-press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[2]); moveTo(r4.nodes[1]); press("BUTTON4", false)
+assert(last() == "/bg Enemy carrier entering their tunnel with 3 escorts", last())
+
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); press("BUTTON4", false)
+assert(last() == "/bg Enemy carrier at the tunnel", last())          -- released at the side step
+
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[3]); moveTo(r5.nodes[2]); press("BUTTON4", false)
+assert(last() == "/bg Enemy carrier at our ramp", last())            -- released at the escort step
+
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[5]); moveTo(r5.nodes[2]); moveTo(r4.nodes[2]); press("BUTTON4", false)
+assert(last() == "/bg Enemy carrier at our graveyard side with 1 escort", last())
+
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[2])
+assert(r4:IsShown() and not r5:IsShown(), "roof has no side step")
+moveTo(r4.nodes[1]); press("BUTTON4", false)
 assert(last() == "/bg Enemy carrier on their roof, alone", last())
-press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[3]); moveTo(r4.nodes[2]); press("BUTTON4", false)
-assert(last() == "/bg Enemy carrier at our ramp with 1 escort", last())
+
+print("== 9c. Right click from escorts back to the side step, change side")
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); moveTo(r5.nodes[2]); moveTo(r4.nodes[3])
+press("BUTTON2", true)
+assert(r5:IsShown() and not r4:IsShown())
+assert(send.attrs.msg == "Enemy carrier at the tunnel", send.attrs.msg)
+moveTo(r5.center); moveTo(r5.nodes[1]); press("BUTTON4", false)
+assert(last() == "/bg Enemy carrier entering their tunnel", last())
+
+print("== 9d. SCOUT count labels")
 press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1])
 assert(r4.nodes[1].big.t == "CLEAR", tostring(r4.nodes[1].big.t))
 press("BUTTON2", true); press("BUTTON2", true); press("BUTTON4", false)

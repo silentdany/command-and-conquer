@@ -8,7 +8,10 @@ Tout l'add-on est en anglais pour le moment.
 1. Appuyer sur la touche de la roue et la garder enfoncée : la roue s'ouvre sous le curseur.
 2. Glisser vers une action : DEF, FLAG, EFC, ATTACK, SCOUT, INC.
 3. Glisser vers un choix (6 par action).
-4. INC, SCOUT et EFC : en option, glisser vers le nombre d'ennemis (INC : 1 à 5+ ; SCOUT : CLEAR, 1 à 5+ ; EFC : escorteurs du porteur, ALONE, 1 à 5+), ou relâcher pour envoyer sans nombre.
+4. Étapes suivantes, toutes optionnelles (relâcher au milieu envoie ce qui est déjà choisi) :
+   - INC : nombre d'ennemis, 1 à 5+ ;
+   - SCOUT : CLEAR, 1 à 5+ ;
+   - EFC rampe, tunnel ou GY : côté (THEIRS en haut, OURS en bas), puis escorteurs (ALONE, 1 à 5+) ; EFC salle, toit, mid : escorteurs directement.
 5. Relâcher la touche : le message part en /bg. Revenir au centre avant de relâcher = rien n'est envoyé.
 
 Clic droit = une étape en arrière ; deux clics droits de suite = fermer la roue.
@@ -28,7 +31,7 @@ Un même lieu garde la même direction dans toutes les actions, pour que la main
 Les options qui ne sont pas des lieux prennent la place du lieu le moins utile pour l'action (ESCORT pour DEF, ZERG pour ATTACK, HELP et CAP! pour FLAG).
 Des touches directes (INC, SCOUT, EFC, FLAG, DEF, ATTACK) sautent l'étape 1.
 
-Carte actuelle des messages : [CommandAndConquer/Data.lua](CommandAndConquer/Data.lua). Base de départ validée : [docs/mapping-roue-v3.md](docs/mapping-roue-v3.md) (8 choix, réduite à 6 le 17/11/2026).
+Carte actuelle des messages : [CommandAndConquer/Data.lua](CommandAndConquer/Data.lua). Les messages sont en anglais simple, sans jargon (pas de EFC, EFR, GY, zerg…) ; le jargon court reste seulement sur les libellés de la roue. Base de départ validée : [docs/mapping-roue-v3.md](docs/mapping-roue-v3.md) (8 choix, réduite à 6 le 17/11/2026).
 
 ## Pourquoi « relâcher pour envoyer »
 

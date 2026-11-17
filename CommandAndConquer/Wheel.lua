@@ -27,13 +27,14 @@ local BUTTON_NAME = "CnCWheelButton"
 -- outer = wheel radius. Icons sit in the middle of the sector band. The
 -- secure hit frame is only the icon area: the cursor must reach the icon
 -- to pick a sector (v0.2 still felt too sensitive). Centers are dead
--- zones: cancel (ring 2) and "no number" (ring 3).
+-- zones: cancel (ring 2), "skip this optional step" (rings 3+).
 -- 6 sectors max per wheel (Dany, 17/11/2026: bigger targets, less mess).
 local RINGS = {
   { n = 6, outer = 160, icon = 46, hit = 58 },                -- actions
   { n = 6, outer = 165, icon = 44, hit = 56, center = true }, -- choices
   { n = 5, outer = 140, icon = 0, hit = 52, center = true },  -- INC count
-  { n = 6, outer = 150, icon = 0, hit = 52, center = true },  -- SCOUT count
+  { n = 6, outer = 150, icon = 0, hit = 52, center = true },  -- SCOUT / EFC count
+  { n = 2, outer = 120, icon = 0, hit = 60, center = true },  -- side: theirs (top), ours (bottom)
 }
 local INNER_RATIO = 0.32 -- inner radius / outer radius, baked in the textures
 local TEX_RATIO = 0.96   -- wheel diameter / texture size, baked in the textures
@@ -49,19 +50,25 @@ local COLOR_LABEL = { 0.93, 0.93, 0.93, 1 }
 -- Secure snippets (run in the restricted environment)
 ---------------------------------------------------------------------------
 
+-- State on the wheel button (all attributes):
+--   step       ring currently shown (1 actions, 2 choices, 3+ optional steps)
+--   path       what is picked so far, "a-c-..." (indices); msg = m<path>
+--   base       path when the current ring opened
+--   prevN      ring that opened ring N; prevbaseN its base (for going back)
+--   selN       picked sector on ring N (for drawing), a = picked action
+--   next-<path> ring to open after picking <path> (set from Data.lua)
+-- Steps after 2 are optional: releasing sends what is picked so far.
+
 -- Pre-click on the wheel button. `button` is "LeftButton" for the main
--- binding, or an action key ("INC", ...) for the direct bindings.
+-- binding, an action key ("INC", ...) for the direct bindings, or "BACK"
+-- for the right click bound while the wheel is open.
 local ON_CLICK = [[
   local root = owner:GetFrameRef("root")
   local screen = owner:GetFrameRef("screen")
-  local r1 = owner:GetFrameRef("r1")
-  local r2 = owner:GetFrameRef("r2")
-  local r3 = owner:GetFrameRef("r3")
-  local r4 = owner:GetFrameRef("r4")
 
   if button == "BACK" then
-    -- Right click while open: one step back. A second right click in a
-    -- row (no new pick in between) closes the wheel.
+    -- One step back. A second right click in a row (no new pick in
+    -- between) closes the wheel.
     if not down or not root:IsShown() then
       return false
     end
@@ -74,20 +81,25 @@ local ON_CLICK = [[
       return false
     end
     self:SetAttribute("backs", 1)
-    r3:Hide()
-    r4:Hide()
-    local back = r2
-    if step == 2 then
-      r2:Hide()
-      back = r1
+    local prev = self:GetAttribute("prev" .. step)
+    local base = self:GetAttribute("prevbase" .. step)
+    owner:GetFrameRef("r" .. step):Hide()
+    self:SetAttribute("sel" .. step, 0)
+    self:SetAttribute("sel" .. prev, 0)
+    self:SetAttribute("step", prev)
+    self:SetAttribute("base", base)
+    self:SetAttribute("path", base)
+    if prev <= 2 then
+      self:SetAttribute("msg", "")
+    else
+      self:SetAttribute("msg", self:GetAttribute("m" .. base) or "")
+    end
+    if prev == 1 then
       self:SetAttribute("a", 0)
     end
-    self:SetAttribute("step", step == 2 and 1 or 2)
-    self:SetAttribute("c", 0)
-    self:SetAttribute("k", 0)
-    self:SetAttribute("msg", "")
     -- The previous ring comes back centered on the cursor, so the cursor
     -- sits in its dead center and picks nothing by accident.
+    local back = owner:GetFrameRef("r" .. prev)
     local x, y = screen:GetMousePosition()
     back:ClearAllPoints()
     if x and y then
@@ -96,7 +108,7 @@ local ON_CLICK = [[
       back:SetPoint("CENTER", root, "CENTER")
     end
     back:Show()
-    self:SetAttribute("state", "back:" .. self:GetAttribute("step") .. ":" .. self:GetAttribute("a"))
+    self:SetAttribute("state", "back:" .. prev .. ":" .. base)
     return false
   end
 
@@ -116,26 +128,34 @@ local ON_CLICK = [[
     else
       root:SetPoint("CENTER", screen, "CENTER")
     end
-    self:SetAttribute("c", 0)
-    self:SetAttribute("k", 0)
+    local rings = self:GetAttribute("rings")
+    for i = 2, rings do
+      owner:GetFrameRef("r" .. i):Hide()
+      self:SetAttribute("sel" .. i, 0)
+    end
     self:SetAttribute("msg", "")
     self:SetAttribute("backs", 0)
-    r3:Hide()
-    r4:Hide()
+    local r1 = owner:GetFrameRef("r1")
     r1:ClearAllPoints()
     r1:SetPoint("CENTER", root, "CENTER")
     local preset = self:GetAttribute("preset-" .. button)
     if preset then
       self:SetAttribute("a", preset)
       self:SetAttribute("step", 2)
+      self:SetAttribute("base", "" .. preset)
+      self:SetAttribute("path", "" .. preset)
+      self:SetAttribute("prev2", 1)
+      self:SetAttribute("prevbase2", "")
       r1:Hide()
+      local r2 = owner:GetFrameRef("r2")
       r2:ClearAllPoints()
       r2:SetPoint("CENTER", root, "CENTER")
       r2:Show()
     else
       self:SetAttribute("a", 0)
       self:SetAttribute("step", 1)
-      r2:Hide()
+      self:SetAttribute("base", "")
+      self:SetAttribute("path", "")
       r1:Show()
     end
     root:Show()
@@ -158,8 +178,8 @@ local ON_CLICK = [[
   self:SetAttribute("macrotext", self:GetAttribute("prefix") .. " " .. msg)
 ]]
 
--- Mouse enters a node. Ring 1 = action, ring 2 = choice (idx 0 = center,
--- cancels), rings 3 and 4 = enemy count (idx 0 = center, no number).
+-- Mouse reaches a node. idx 0 = ring center: on ring 2 it cancels the
+-- choice, on later rings it drops the optional pick of that ring.
 local ON_ENTER = [[
   local send = owner:GetFrameRef("send")
   local ring = self:GetAttribute("ring")
@@ -167,47 +187,45 @@ local ON_ENTER = [[
   if ring ~= send:GetAttribute("step") then
     return
   end
-  if idx > 0 then
-    send:SetAttribute("backs", 0)
-  end
-  local a = send:GetAttribute("a")
-  if ring == 1 then
-    a = idx
-    send:SetAttribute("a", a)
-    send:SetAttribute("step", 2)
-    local r2 = owner:GetFrameRef("r2")
-    owner:GetFrameRef("r1"):Hide()
-    r2:ClearAllPoints()
-    r2:SetPoint("CENTER", self, "CENTER")
-    r2:Show()
-  elseif ring == 2 then
-    if idx == 0 then
-      send:SetAttribute("c", 0)
+  local base = send:GetAttribute("base")
+  if idx == 0 then
+    send:SetAttribute("path", base)
+    send:SetAttribute("sel" .. ring, 0)
+    if ring == 2 then
       send:SetAttribute("msg", "")
     else
-      send:SetAttribute("c", idx)
-      send:SetAttribute("msg", send:GetAttribute("m" .. a .. "-" .. idx))
-      local countRing = send:GetAttribute("count" .. a)
-      if countRing then
-        send:SetAttribute("step", countRing)
-        local rc = owner:GetFrameRef("r" .. countRing)
-        owner:GetFrameRef("r2"):Hide()
-        rc:ClearAllPoints()
-        rc:SetPoint("CENTER", self, "CENTER")
-        rc:Show()
-      end
+      send:SetAttribute("msg", send:GetAttribute("m" .. base) or "")
     end
   else
-    local c = send:GetAttribute("c")
-    send:SetAttribute("k", idx)
-    if idx == 0 then
-      send:SetAttribute("msg", send:GetAttribute("m" .. a .. "-" .. c))
+    send:SetAttribute("backs", 0)
+    local path
+    if ring == 1 then
+      path = "" .. idx
+      send:SetAttribute("a", idx)
     else
-      send:SetAttribute("msg", send:GetAttribute("m" .. a .. "-" .. c .. "-" .. idx))
+      path = base .. "-" .. idx
+    end
+    send:SetAttribute("path", path)
+    send:SetAttribute("sel" .. ring, idx)
+    send:SetAttribute("msg", send:GetAttribute("m" .. path) or "")
+    local nextRing = 2
+    if ring > 1 then
+      nextRing = send:GetAttribute("next-" .. path)
+    end
+    if nextRing then
+      send:SetAttribute("step", nextRing)
+      send:SetAttribute("prev" .. nextRing, ring)
+      send:SetAttribute("prevbase" .. nextRing, base)
+      send:SetAttribute("base", path)
+      send:SetAttribute("sel" .. nextRing, 0)
+      owner:GetFrameRef("r" .. ring):Hide()
+      local rn = owner:GetFrameRef("r" .. nextRing)
+      rn:ClearAllPoints()
+      rn:SetPoint("CENTER", self, "CENTER")
+      rn:Show()
     end
   end
-  send:SetAttribute("state", send:GetAttribute("step") .. ":" .. a .. ":"
-    .. send:GetAttribute("c") .. ":" .. send:GetAttribute("k"))
+  send:SetAttribute("state", send:GetAttribute("step") .. ":" .. send:GetAttribute("path"))
 ]]
 
 W.ON_CLICK = ON_CLICK
@@ -343,29 +361,24 @@ function W:Build()
   send:SetAttribute("prefix", "/bg")
   send:Hide()
 
-  local rings = { makeRing(root, 1), makeRing(root, 2), makeRing(root, 3), makeRing(root, 4) }
+  local rings = {}
+  for r = 1, #RINGS do rings[r] = makeRing(root, r) end
+  send:SetAttribute("rings", #RINGS)
 
   -- Message table, as attributes the secure snippets can read.
   for a, action in ipairs(ns.ACTIONS) do
     send:SetAttribute("preset-" .. action.key, a)
-    if action.countRing then send:SetAttribute("count" .. a, action.countRing) end
-    for c, choice in ipairs(action.choices) do
-      send:SetAttribute("m" .. a .. "-" .. c, choice.msg)
-      if action.countRing then
-        for k, msg in ipairs(ns.CountMessages(action, choice)) do
-          send:SetAttribute("m" .. a .. "-" .. c .. "-" .. k, msg)
-        end
-      end
-    end
   end
+  local msgs, nexts = ns.BuildTree()
+  for path, msg in pairs(msgs) do send:SetAttribute("m" .. path, msg) end
+  for path, ring in pairs(nexts) do send:SetAttribute("next-" .. path, ring) end
 
   header:SetFrameRef("send", send)
   header:SetFrameRef("root", root)
   header:SetFrameRef("screen", screen)
   header:SetFrameRef("r1", rings[1])
   header:SetFrameRef("r2", rings[2])
-  header:SetFrameRef("r3", rings[3])
-  header:SetFrameRef("r4", rings[4])
+  for r = 3, #rings do header:SetFrameRef("r" .. r, rings[r]) end
 
   header:WrapScript(send, "OnClick", ON_CLICK)
   for _, ring in ipairs(rings) do
@@ -380,8 +393,14 @@ function W:Build()
     node.icon:SetTexture(ns.IconPath(action.icon))
     node.label:SetText(action.label)
   end
-  for r = 3, 4 do
+  for r = 3, #rings do
     for _, node in ipairs(rings[r].nodes) do node.icon:Hide() end
+  end
+  for s, side in ipairs(ns.SIDES) do
+    local node = rings[5].nodes[s]
+    node.big:SetText(side)
+    node.big:SetFont(STANDARD_TEXT_FONT, 16, "")
+    if side == "THEIRS" then setColor(node.big, COLOR_ENEMY) end
   end
 
   -- Lights the sector the cursor points at, before it reaches the icon.
@@ -429,12 +448,11 @@ end
 function W:Paint()
   local send = self.send
   local step = send:GetAttribute("step") or 1
-  local k = send:GetAttribute("k") or 0
-  local selected = { 0, send:GetAttribute("c") or 0, k, k }
   for r, ring in ipairs(self.rings) do
     local aim = (r == step) and self.aim or 0
+    local selected = (r > 1) and (send:GetAttribute("sel" .. r) or 0) or 0
     for i, fill in ipairs(ring.fills) do
-      if i == selected[r] then
+      if i == selected then
         setColor(fill, COLOR_HOT)
       elseif i == aim then
         setColor(fill, COLOR_AIM)
@@ -509,7 +527,7 @@ function W:Refresh()
   end
 
   local a = send:GetAttribute("a") or 0
-  local c = send:GetAttribute("c") or 0
+  local c = send:GetAttribute("sel2") or 0
   local action = ns.ACTIONS[a]
 
   if action and self.labelsFor ~= a then
@@ -529,10 +547,9 @@ function W:Refresh()
     end
   end
 
-  -- Count ring centers show the place locked in by step 2.
+  -- Centers of the optional rings show the place picked at step 2.
   if action and c > 0 then
-    setIcon(self.rings[3].center, action.choices[c])
-    setIcon(self.rings[4].center, action.choices[c])
+    for r = 3, #self.rings do setIcon(self.rings[r].center, action.choices[c]) end
   end
 
   self:Paint()
