@@ -12,6 +12,8 @@ function InCombatLockdown() return combat end
 function UnitFactionGroup() return "Alliance" end
 function UnitFullName() return "Elemente", "Venera" end
 function UnitName() return "Elemente" end
+inBG = true
+function IsInInstance() if inBG then return true, "pvp" end return false, "none" end
 local looking = false
 function IsMouselooking() return looking end
 function MouselookStop() looking = false; print("  [mouselook stopped]") end
@@ -182,8 +184,9 @@ moveTo(r1.nodes[3]); moveTo(r2.nodes[3]); moveTo(r2.nodes[5])
 press("BUTTON4", false)
 assert(sent[#sent] == "/bg Enemy carrier at our tunnel (EFC)")
 
-print("== 8. Test mode")
-SlashCmdList.COMMANDANDCONQUER("test")
+print("== 8. Outside a BG: practice whisper (automatic)")
+inBG = false
+events.scripts.OnEvent(events, "ZONE_CHANGED_NEW_AREA")
 press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4", false)
 assert(sent[#sent] == "/w Elemente-Venera I have their flag, escort me", sent[#sent])
 
@@ -191,8 +194,9 @@ print("== 9. Every message fits a macro (255)")
 for k, v in pairs(send.attrs) do
   if type(k) == "string" and k:match("^m%d") then assert(#v + 30 < 255) end
 end
-print("== 10. INC > Roof > 4 then back to center = no number")
-SlashCmdList.COMMANDANDCONQUER("test")
+print("== 10. Back in a BG: /bg again. INC > Roof > 4 then back to center = no number")
+inBG = true
+events.scripts.OnEvent(events, "PLAYER_ENTERING_WORLD")
 press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[2])
 
 moveTo(r3.nodes[4]); moveTo(r3.center)

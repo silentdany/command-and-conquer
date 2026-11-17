@@ -33,10 +33,34 @@ local function playerFullName()
   return name
 end
 
--- Test mode whispers yourself instead of writing in /bg.
+-- Automatic: /bg in a battleground, a whisper to yourself anywhere else
+-- (practice). A saved test toggle stayed on in a BG once (17/11/2026), so
+-- there is no toggle any more.
+local function inBattleground()
+  local _, instanceType = IsInInstance()
+  return instanceType == "pvp"
+end
+
 local function currentPrefix()
-  if CnCDB.test then return "/w " .. playerFullName() end
-  return "/bg"
+  if inBattleground() then return "/bg" end
+  return "/w " .. playerFullName()
+end
+
+local lastPrefix
+
+local function updatePrefix()
+  local prefix = currentPrefix()
+  if prefix == lastPrefix then return end
+  if not W:SetPrefix(prefix) then
+    return false
+  end
+  lastPrefix = prefix
+  if prefix == "/bg" then
+    out("battleground: calls go to /bg.")
+  else
+    out("outside battlegrounds: calls are whispered to you (practice).")
+  end
+  return true
 end
 
 ---------------------------------------------------------------------------
@@ -79,7 +103,7 @@ local function setup()
   end
   pendingSetup = false
   W:Build()
-  W:SetPrefix(currentPrefix())
+  updatePrefix()
   W:SetScale(CnCDB.scale or 1)
   local count = applyBindings()
   if count == 0 then
@@ -94,13 +118,13 @@ end
 local function help()
   out("hold your wheel key, flick toward an action, then a choice, release to send.")
   out("Back to the center before release = nothing sent.")
-  out("/cnc test : toggle test mode (whisper yourself instead of /bg)")
+  out("In a battleground calls go to /bg; anywhere else they are whispered to you (practice).")
   out("/cnc scale <0.6-2> : wheel size (default 1)")
   out("/cnc status : show mode and bound keys")
 end
 
 local function status()
-  out("mode: %s, size %.2f", CnCDB.test and "TEST (whisper to yourself)" or "/bg", CnCDB.scale or 1)
+  out("calls go to: %s, size %.2f", inBattleground() and "/bg" or "a whisper to you (practice)", CnCDB.scale or 1)
   for _, b in ipairs(BINDINGS) do
     local keys = { GetBindingKey(b.name) }
     if #keys > 0 then out("  %s: %s", _G["BINDING_NAME_" .. b.name], table.concat(keys, ", ")) end
@@ -110,15 +134,7 @@ end
 SLASH_COMMANDANDCONQUER1 = "/cnc"
 SlashCmdList.COMMANDANDCONQUER = function(input)
   local cmd, arg = (input or ""):lower():match("^%s*(%S*)%s*(%S*)")
-  if cmd == "test" then
-    if InCombatLockdown() then
-      out("can't change mode in combat.")
-      return
-    end
-    CnCDB.test = not CnCDB.test
-    W:SetPrefix(currentPrefix())
-    out("test mode %s.", CnCDB.test and "ON: calls are whispered to you" or "OFF: calls go to /bg")
-  elseif cmd == "scale" then
+  if cmd == "scale" then
     local value = tonumber(arg)
     if not value or value < 0.6 or value > 2 then
       out("usage: /cnc scale <0.6-2> (now %.2f)", CnCDB.scale or 1)
@@ -146,17 +162,23 @@ frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("UPDATE_BINDINGS")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 
 frame:SetScript("OnEvent", function(_, event, arg1)
   if event == "ADDON_LOADED" then
     if arg1 == ADDON_NAME then
       CnCDB = CnCDB or {}
+      CnCDB.test = nil -- old saved toggle (v0.1 to v0.3)
     end
   elseif event == "PLAYER_LOGIN" then
     setup()
   elseif event == "UPDATE_BINDINGS" then
     if not W.built then return end
     if InCombatLockdown() then pendingSetup = true else applyBindings() end
+  elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
+    if not W.built then return end
+    if InCombatLockdown() then pendingSetup = true else updatePrefix() end
   elseif event == "PLAYER_REGEN_ENABLED" then
     if pendingSetup then setup() end
   end

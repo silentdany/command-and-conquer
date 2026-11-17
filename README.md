@@ -38,7 +38,7 @@ Mises à jour (Windows) : copier `tools/update-cnc.bat` dans `Interface/AddOns/`
 Ensuite :
 
 1. Échap > Raccourcis > AddOns > Command & Conquer : lier « Call wheel » à une touche (un bouton latéral de souris est idéal).
-2. `/cnc test` : mode test, les calls te sont chuchotés au lieu de partir en /bg. Refaire `/cnc test` pour revenir en /bg.
+2. Automatique : en BG les calls partent en /bg ; ailleurs ils te sont chuchotés, pour t'entraîner.
 3. `/cnc scale 1.3` : taille de la roue (0.6 à 2, défaut 1).
 4. `/cnc status` : mode, taille et touches liées.
 
