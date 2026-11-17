@@ -259,6 +259,47 @@ end
 
 -- Secure macro button: the click is a hardware event and the macro runs
 -- through Blizzard's own code, like a macro the player wrote.
+-- Blizzard ping system (ping wheel): is it on this client, and can a
+-- secure macro "/ping" run from an add-on button in a battleground?
+local pingButton
+local function pingInfo()
+  local api = {}
+  if type(C_Ping) == "table" then
+    for k in pairs(C_Ping) do api[#api + 1] = tostring(k) end
+    table.sort(api)
+  end
+  out("C_Ping : %s", type(C_Ping) ~= "table" and "absent" or (#api > 0 and table.concat(api, ", ") or "présent, vide"))
+  local slash = {}
+  for i = 1, 4 do
+    local v = _G["SLASH_PING" .. i]
+    if v then slash[#slash + 1] = v end
+  end
+  out("Commande /ping : %s", #slash > 0 and table.concat(slash, " ") or "introuvable")
+  local key = GetBindingKey and GetBindingKey("TOGGLEPINGLISTENER")
+  out("Touche de ping Blizzard : %s", key or "non liée ou absente")
+end
+
+local function showPingButton()
+  if InCombatLockdown() then
+    out("Hors combat seulement.")
+    return
+  end
+  if not pingButton then
+    local b = CreateFrame("Button", "CnCProbePingButton", UIParent,
+      "SecureActionButtonTemplate, UIPanelButtonTemplate")
+    b:SetSize(240, 34)
+    b:SetPoint("CENTER", UIParent, "CENTER", 0, 150)
+    b:SetText("CnC : test /ping sur la cible")
+    b:RegisterForClicks("AnyUp", "AnyDown")
+    b:SetAttribute("type", "macro")
+    b:SetAttribute("macrotext", "/ping [@target] attack")
+    pingButton = b
+  end
+  pingButton:Show()
+  out("Cible quelqu'un (un ennemi ou un allié), puis clique le bouton. Un ping « attaque » doit apparaître sur la cible.")
+  out("Dis-moi si tu le vois, et s'il y a un message d'erreur. /cnct hide pour cacher les boutons.")
+end
+
 local secureButton
 local function nextSecureText()
   local rec = track("secure", "macro /bg", ECHO_TIMEOUT)
@@ -448,6 +489,7 @@ local function help()
   out("/cnct info : version du client et API disponibles")
   out("/cnct run [auto|bg|instance|battleground|party|raid|say|whisper] : lance les tests (auto par défaut)")
   out("/cnct secure : bouton de test « macro /bg » à cliquer (hors combat)")
+  out("/cnct ping : système de ping présent ? + bouton de test « /ping » (hors combat)")
   out("/cnct editbox : pré-remplit une ligne /bg, à envoyer avec Entrée")
   out("/cnct report : réaffiche le dernier rapport")
   out("/cnct clear : vide l'historique sauvegardé")
@@ -466,10 +508,16 @@ SlashCmdList.CNCPROBE = function(input)
     local rec = track("editbox", "editbox /bg", 30)
     openChat(("/bg CnC editbox test #%s, please ignore"):format(rec.nonce))
     out("Ligne pré-remplie : tape Entrée dans les 30 s.")
+  elseif cmd == "ping" then
+    pingInfo()
+    showPingButton()
   elseif cmd == "secure" then
     showSecureButton()
   elseif cmd == "hide" then
-    if secureButton and not InCombatLockdown() then secureButton:Hide() end
+    if not InCombatLockdown() then
+      if secureButton then secureButton:Hide() end
+      if pingButton then pingButton:Hide() end
+    end
   elseif cmd == "report" then
     report()
   elseif cmd == "clear" then

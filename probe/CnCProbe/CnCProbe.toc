@@ -1,8 +1,8 @@
-## Interface: 16001, 11507, 11508
+## Interface: 16001
 ## Title: Command & Conquer - Probe
 ## Notes: Test : un add-on peut-il écrire en /bg sur ce client ?
 ## Author: silentdany
-## Version: 0.2.0
+## Version: 0.3.0
 ## SavedVariables: CnCProbeDB
 
 CnCProbe.lua
