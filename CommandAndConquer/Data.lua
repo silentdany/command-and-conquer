@@ -31,8 +31,10 @@ local _, ns = ...
 local PING_ENEMY_ATTACK = "/ping [@target,harm,nodead] attack"
 local PING_ENEMY_WARNING = "/ping [@target,harm,nodead] warning"
 local PING_FRIEND_ASSIST = "/ping [@target,help,nodead] assist"
+-- Only for "I have their flag": the caller is the carrier. Other FLAG
+-- calls can come from anyone, and macro conditions cannot tell who holds
+-- the flag, so they never ping yourself (bug seen in game, 17/11/2026).
 local PING_ME_ASSIST = "/ping [@player] assist"
-local PING_ME_ONMYWAY = "/ping [@player] onmyway"
 
 ns.ACTIONS = {
   {
@@ -50,10 +52,10 @@ ns.ACTIONS = {
     key = "FLAG", label = "FLAG", icon = "flag",
     choices = {
       { label = "GOT IT", icon = "flag", msg = "I have their flag, escort me", ping = PING_ME_ASSIST },
-      { label = "HELP", icon = "help", msg = "Our flag carrier needs help", ping = PING_ME_ASSIST },
-      { label = "RAMP", icon = "ramp", msg = "Our flag carrier going ramp", ping = PING_ME_ONMYWAY },
-      { label = "TUN", icon = "tunnel", msg = "Our flag carrier going tunnel", ping = PING_ME_ONMYWAY },
-      { label = "GY", icon = "gy", msg = "Our flag carrier going graveyard side", ping = PING_ME_ONMYWAY },
+      { label = "HELP", icon = "help", msg = "Our flag carrier needs help", ping = PING_FRIEND_ASSIST },
+      { label = "RAMP", icon = "ramp", msg = "Our flag carrier going ramp" },
+      { label = "TUN", icon = "tunnel", msg = "Our flag carrier going tunnel" },
+      { label = "GY", icon = "gy", msg = "Our flag carrier going graveyard side" },
       { label = "CAP!", icon = "cap", msg = "Our flag is home, cap now" },
     },
   },

@@ -254,6 +254,10 @@ press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4
 assert(lastPing() == "/ping [@player] assist", tostring(lastPing()))
 press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[6]); press("BUTTON4", false)
 assert(last() == "/bg Our flag is home, cap now" and lastPing() == nil, tostring(lastPing()))
+press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[2]); press("BUTTON4", false)
+assert(lastPing() == "/ping [@target,help,nodead] assist", tostring(lastPing()))   -- HELP: friendly target, never yourself
+press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[4]); press("BUTTON4", false)
+assert(last() == "/bg Our flag carrier going tunnel" and lastPing() == nil, tostring(lastPing()))
 press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[4]); moveTo(r3.nodes[2]); press("BUTTON4", false)
 assert(last() == "/bg 2 incoming at our tunnel" and lastPing() == "/ping [@target,harm,nodead] warning", tostring(lastPing()))
 SlashCmdList.COMMANDANDCONQUER("ping")

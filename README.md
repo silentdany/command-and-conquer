@@ -22,8 +22,8 @@ Chaque call peut poser un **ping** en même temps (même macro sécurisée, `/pi
 |---|---|
 | EFC, ATTACK | Attaque sur la cible, si c'est un ennemi vivant |
 | INC, SCOUT | Attention sur la cible, si c'est un ennemi vivant |
-| FLAG Got it, Help | Aide sur soi |
-| FLAG Ramp, Tun, GY | En route sur soi |
+| FLAG Got it | Aide sur soi (c'est forcément le porteur qui l'envoie) |
+| FLAG Help | Aide sur la cible, si c'est un allié |
 | DEF Escort | Aide sur la cible, si c'est un allié |
 
 Sans cible du bon type, seul le message part. `/cnc ping` coupe ou remet les pings.
