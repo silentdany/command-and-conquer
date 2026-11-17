@@ -125,7 +125,7 @@ end
 
 local function help()
   out("hold your wheel key, flick toward an action, then a choice, release to send.")
-  out("Back to the center before release = nothing sent. Right click = one step back, right click twice = close.")
+  out("Back to the center before release = nothing sent. Steps after the second one are optional.")
   out("In a battleground calls go to /bg; anywhere else they are whispered to you (practice).")
   out("/cnc scale <0.6-2> : wheel size (default 1)")
   out("/cnc status : show mode and bound keys")

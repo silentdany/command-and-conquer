@@ -14,7 +14,6 @@ Tout l'add-on est en anglais pour le moment.
    - EFC rampe, tunnel ou GY : côté (THEIRS en haut, OURS en bas), puis escorteurs (ALONE, 1 à 5+) ; EFC salle, toit, mid : escorteurs directement.
 5. Relâcher la touche : le message part en /bg. Revenir au centre avant de relâcher = rien n'est envoyé.
 
-Clic droit = une étape en arrière ; deux clics droits de suite = fermer la roue.
 Le choix se déclenche quand le curseur atteint l'icône d'une part ; la part visée s'éclaire avant.
 
 Un même lieu garde la même direction dans toutes les actions, pour que la main apprenne le geste :
@@ -74,5 +73,5 @@ Ensuite :
 | Jalon | Statut |
 |---|---|
 | 1. Un add-on peut-il écrire en /bg sur Forever ? | Fait : non en direct, oui par bouton sécurisé |
-| 2. Prototype de la roue (étapes 1 à 3) | v0.4 : 6 options par roue, action SCOUT, clic droit pour revenir ou fermer |
+| 2. Prototype de la roue (étapes 1 à 3) | v0.5 : 6 options par roue, SCOUT, EFC avec côté et escorteurs, étapes après la 2e optionnelles (clic droit abandonné : non fonctionnel sur Forever) |
 | 3. Premier essai en BG réel | À faire |

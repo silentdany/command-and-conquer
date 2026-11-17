@@ -130,17 +130,6 @@ local function press(key, down)
     print("  MACRO RUN: " .. send.attrs.macrotext)
   end
 end
--- The catcher is a SecureHandlerClickTemplate: its _onclick attribute runs
--- in the restricted environment with self = the catcher.
-local function rightClick()
-  local c = ns.Wheel.catcher
-  if not c:IsVisible() then return end
-  local env = setmetatable({ self = c, button = "RightButton", down = true, tonumber = tonumber, tostring = tostring, string = string, math = math },
-    { __index = function(_, k) error("restricted env: unknown global " .. tostring(k), 2) end })
-  local fn = assert(loadstring(c.attrs._onclick, "=_onclick"))
-  setfenv(fn, env)
-  fn()
-end
 local function enter(node)
   if not node:IsVisible() then return end
   runSnippet(node, "OnEnter")
@@ -156,13 +145,12 @@ print("== 1. DEF > Roof, release")
 looking = true
 press("BUTTON4", true)
 assert(W.root:IsShown() and r1:IsShown() and not r2:IsShown())
-assert(W.catcher:IsVisible(), "right-click catcher not shown while open")
 moveTo(r1.nodes[1]); assert(r2:IsShown() and not r1:IsShown())
 moveTo(r2.nodes[2])
 print("  preview:", W.preview.text.t)
 press("BUTTON4", false)
 assert(last() == "/bg Defend our roof", last())
-assert(not W.root:IsShown() and not W.catcher:IsVisible())
+assert(not W.root:IsShown())
 
 print("== 2. INC > Tunnel > 3")
 press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[4])
@@ -199,22 +187,6 @@ assert(last() == "/bg 1 enemy at mid", last())
 press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[2]); moveTo(r4.center); press("BUTTON4", false)
 assert(last() == "/bg Enemies on their roof", last())
 
-print("== 8. Right click: back from count to places, pick another place")
-press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[4])
-assert(r3:IsShown())
-rightClick()
-assert(r2:IsShown() and not r3:IsShown() and W.root:IsShown())
-moveTo(r2.center)                 -- cursor lands in the dead center
-moveTo(r2.nodes[3]); press("BUTTON4", false)
-assert(last() == "/bg Incoming at our ramp", last())
-
-print("== 9. Right click: back from places to actions, then another action")
-press("BUTTON4", true); moveTo(r1.nodes[1]); moveTo(r2.nodes[1])
-rightClick()
-assert(r1:IsShown() and not r2:IsShown())
-moveTo(r1.nodes[3]); moveTo(r2.nodes[6]); press("BUTTON4", false)
-assert(last() == "/bg Enemy carrier at mid", last())
-
 print("== 9b. EFC: side step, escorts, all optional")
 press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4])
 assert(r5:IsShown() and not r4:IsShown(), "side ring expected")
@@ -237,35 +209,11 @@ assert(r4:IsShown() and not r5:IsShown(), "roof has no side step")
 moveTo(r4.nodes[1]); press("BUTTON4", false)
 assert(last() == "/bg Enemy carrier on their roof, alone", last())
 
-print("== 9c. Right click from escorts back to the side step, change side")
-press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); moveTo(r5.nodes[2]); moveTo(r4.nodes[3])
-rightClick()
-assert(r5:IsShown() and not r4:IsShown())
-assert(send.attrs.msg == "Enemy carrier at the tunnel", send.attrs.msg)
-moveTo(r5.center); moveTo(r5.nodes[1]); press("BUTTON4", false)
-assert(last() == "/bg Enemy carrier entering their tunnel", last())
-
 print("== 9d. SCOUT count labels")
 press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1])
 assert(r4.nodes[1].big.t == "CLEAR", tostring(r4.nodes[1].big.t))
-rightClick(); rightClick(); press("BUTTON4", false)
-
-print("== 10. Double right click closes, release sends nothing")
-n = #sent
-press("BUTTON4", true); moveTo(r1.nodes[4]); moveTo(r2.nodes[2])
-rightClick() -- no pick in between
-rightClick()
-assert(not W.root:IsShown() and not W.catcher:IsVisible())
-press("BUTTON4", false); assert(#sent == n)
-
-print("== 11. Double right click from the count ring closes too")
-press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[1]); moveTo(r3.nodes[2])
-rightClick(); moveTo(r2.center); rightClick()
-assert(not W.root:IsShown())
-press("BUTTON4", false); assert(#sent == n)
-
-print("== 12. Right click at step 1 closes")
-press("BUTTON4", true); rightClick(); assert(not W.root:IsShown()); press("BUTTON4", false)
+press("BUTTON4", false)
+assert(last() == "/bg Enemies in their flag room", last())
 
 print("== 13. Outside a BG: practice whisper (automatic)")
 inBG = false
@@ -294,7 +242,7 @@ W:UpdateAim(); assert(W.aim == 0)
 press("BUTTON4", false)
 print("== 17. /cnc debug does not break anything")
 SlashCmdList.COMMANDANDCONQUER("debug")
-press("BUTTON4", true); moveTo(r1.nodes[1]); rightClick(); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4", false)
+press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4", false)
 assert(last() == "/bg I have their flag, escort me", last())
 SlashCmdList.COMMANDANDCONQUER("debug")
 print("ALL OK, sent " .. #sent .. " messages")
