@@ -113,6 +113,7 @@ local function setup()
   W:Build()
   updatePrefix()
   W:SetScale(CnCDB.scale or 1)
+  W:SetPings(CnCDB.ping ~= false)
   local count = applyBindings()
   if count == 0 then
     out("bind a key to \"C&C: wheel\" in Esc > Key Bindings > AddOns.")
@@ -128,11 +129,13 @@ local function help()
   out("Back to the center before release = nothing sent. Steps after the second one are optional.")
   out("In a battleground calls go to /bg; anywhere else they are whispered to you (practice).")
   out("/cnc scale <0.6-2> : wheel size (default 1)")
+  out("/cnc ping : turn the pings sent with calls on or off")
   out("/cnc status : show mode and bound keys")
 end
 
 local function status()
-  out("calls go to: %s, size %.2f", inBattleground() and "/bg" or "a whisper to you (practice)", CnCDB.scale or 1)
+  out("calls go to: %s, size %.2f, pings %s", inBattleground() and "/bg" or "a whisper to you (practice)",
+    CnCDB.scale or 1, CnCDB.ping == false and "OFF" or "ON")
   for _, b in ipairs(BINDINGS) do
     local keys = { GetBindingKey(b.name) }
     if #keys > 0 then out("  %s: %s", _G["BINDING_NAME_" .. b.name], table.concat(keys, ", ")) end
@@ -154,6 +157,13 @@ SlashCmdList.COMMANDANDCONQUER = function(input)
     end
     CnCDB.scale = value
     out("wheel size %.2f.", value)
+  elseif cmd == "ping" then
+    if not W:SetPings(CnCDB.ping == false) then
+      out("can't change pings in combat.")
+      return
+    end
+    CnCDB.ping = (CnCDB.ping == false)
+    out("pings with calls %s.", CnCDB.ping and "ON" or "OFF")
   elseif cmd == "status" then
     status()
   elseif cmd == "debug" then

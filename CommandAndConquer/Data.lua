@@ -25,6 +25,15 @@
 
 local _, ns = ...
 
+-- Optional ping sent with the call, through the same secure macro
+-- ("/ping" with a unit, tested OK in a battleground on 17/11/2026). Macro
+-- conditions skip the ping when there is no fitting target.
+local PING_ENEMY_ATTACK = "/ping [@target,harm,nodead] attack"
+local PING_ENEMY_WARNING = "/ping [@target,harm,nodead] warning"
+local PING_FRIEND_ASSIST = "/ping [@target,help,nodead] assist"
+local PING_ME_ASSIST = "/ping [@player] assist"
+local PING_ME_ONMYWAY = "/ping [@player] onmyway"
+
 ns.ACTIONS = {
   {
     key = "DEF", label = "DEF", icon = "def",
@@ -34,22 +43,22 @@ ns.ACTIONS = {
       { label = "RAMP", icon = "ramp", msg = "Defend our ramp" },
       { label = "TUN", icon = "tunnel", msg = "Defend our tunnel" },
       { label = "GY", icon = "gy", msg = "Guard our graveyard entrance" },
-      { label = "ESCORT", icon = "escort", msg = "Protect our flag carrier" },
+      { label = "ESCORT", icon = "escort", msg = "Protect our flag carrier", ping = PING_FRIEND_ASSIST },
     },
   },
   {
     key = "FLAG", label = "FLAG", icon = "flag",
     choices = {
-      { label = "GOT IT", icon = "flag", msg = "I have their flag, escort me" },
-      { label = "HELP", icon = "help", msg = "Our flag carrier needs help" },
-      { label = "RAMP", icon = "ramp", msg = "Our flag carrier going ramp" },
-      { label = "TUN", icon = "tunnel", msg = "Our flag carrier going tunnel" },
-      { label = "GY", icon = "gy", msg = "Our flag carrier going graveyard side" },
+      { label = "GOT IT", icon = "flag", msg = "I have their flag, escort me", ping = PING_ME_ASSIST },
+      { label = "HELP", icon = "help", msg = "Our flag carrier needs help", ping = PING_ME_ASSIST },
+      { label = "RAMP", icon = "ramp", msg = "Our flag carrier going ramp", ping = PING_ME_ONMYWAY },
+      { label = "TUN", icon = "tunnel", msg = "Our flag carrier going tunnel", ping = PING_ME_ONMYWAY },
+      { label = "GY", icon = "gy", msg = "Our flag carrier going graveyard side", ping = PING_ME_ONMYWAY },
       { label = "CAP!", icon = "cap", msg = "Our flag is home, cap now" },
     },
   },
   {
-    key = "EFC", label = "EFC", icon = "efc",
+    key = "EFC", label = "EFC", icon = "efc", ping = PING_ENEMY_ATTACK,
     countRing = 4, counts = { "ALONE", "1", "2", "3", "4", "5+" }, -- escorts (17/11/2026)
     choices = {
       { label = "EFR", icon = "flag", enemy = true, msg = "Enemy carrier in their flag room" },
@@ -65,7 +74,7 @@ ns.ACTIONS = {
     },
   },
   {
-    key = "ATTACK", label = "ATTACK", icon = "attack",
+    key = "ATTACK", label = "ATTACK", icon = "attack", ping = PING_ENEMY_ATTACK,
     choices = {
       { label = "EFR", icon = "flag", enemy = true, msg = "Attack their flag room" },
       { label = "ROOF", icon = "roof", enemy = true, msg = "Attack their roof" },
@@ -76,7 +85,7 @@ ns.ACTIONS = {
     },
   },
   {
-    key = "SCOUT", label = "SCOUT", icon = "scout",
+    key = "SCOUT", label = "SCOUT", icon = "scout", ping = PING_ENEMY_WARNING,
     countRing = 4, counts = { "CLEAR", "1", "2", "3", "4", "5+" },
     -- Their side as seen by a scout (added 17/11/2026).
     choices = {
@@ -89,7 +98,7 @@ ns.ACTIONS = {
     },
   },
   {
-    key = "INC", label = "INC", icon = "inc",
+    key = "INC", label = "INC", icon = "inc", ping = PING_ENEMY_WARNING,
     countRing = 3, counts = { "1", "2", "3", "4", "5+" },
     choices = {
       { label = "FR", icon = "flag", msg = "Incoming in our flag room" },
@@ -144,10 +153,11 @@ function ns.CountMessages(action, choice, base)
   return list
 end
 
--- Every message by path ("action-choice[-side][-count]", 1-based indices)
--- and the optional ring to open after a path. Read by Wheel.lua.
+-- Every message by path ("action-choice[-side][-count]", 1-based indices),
+-- the optional ring to open after a path, and the ping line for a path
+-- (choice ping, else action ping). Read by Wheel.lua.
 function ns.BuildTree()
-  local msgs, nexts = {}, {}
+  local msgs, nexts, pings = {}, {}, {}
   for a, action in ipairs(ns.ACTIONS) do
     for c, choice in ipairs(action.choices) do
       local path = a .. "-" .. c
@@ -173,7 +183,12 @@ function ns.BuildTree()
       end
     end
   end
-  return msgs, nexts
+  for path in pairs(msgs) do
+    local a, c = path:match("^(%d+)-(%d+)")
+    local action = ns.ACTIONS[tonumber(a)]
+    pings[path] = action.choices[tonumber(c)].ping or action.ping
+  end
+  return msgs, nexts, pings
 end
 
 ns.MEDIA = "Interface\\AddOns\\CommandAndConquer\\Media\\"

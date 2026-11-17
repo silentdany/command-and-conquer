@@ -16,6 +16,18 @@ Tout l'add-on est en anglais pour le moment.
 
 Le choix se déclenche quand le curseur atteint l'icône d'une part ; la part visée s'éclaire avant.
 
+Chaque call peut poser un **ping** en même temps (même macro sécurisée, `/ping` sur une unité) :
+
+| Call | Ping |
+|---|---|
+| EFC, ATTACK | Attaque sur la cible, si c'est un ennemi vivant |
+| INC, SCOUT | Attention sur la cible, si c'est un ennemi vivant |
+| FLAG Got it, Help | Aide sur soi |
+| FLAG Ramp, Tun, GY | En route sur soi |
+| DEF Escort | Aide sur la cible, si c'est un allié |
+
+Sans cible du bon type, seul le message part. `/cnc ping` coupe ou remet les pings.
+
 Un même lieu garde la même direction dans toutes les actions, pour que la main apprenne le geste :
 
 | Direction | Lieu |
@@ -54,8 +66,9 @@ Ensuite :
 1. Échap > Raccourcis > AddOns : lier « C&C: wheel » à une touche (un bouton latéral de souris est idéal).
 2. Automatique : en BG les calls partent en /bg ; ailleurs ils te sont chuchotés, pour t'entraîner.
 3. `/cnc scale 1.3` : taille de la roue (0.6 à 2, défaut 1).
-4. `/cnc status` : mode, taille et touches liées.
-5. `/cnc debug` : affiche dans le chat ce que la roue voit (diagnostic).
+4. `/cnc ping` : pings avec les calls, oui ou non.
+5. `/cnc status` : mode, taille, pings et touches liées.
+6. `/cnc debug` : affiche dans le chat ce que la roue voit (diagnostic).
 
 ## Structure
 

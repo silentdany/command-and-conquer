@@ -139,7 +139,9 @@ local function moveTo(node) enter(node) end
 local r1, r2, r3, r4, r5 = W.rings[1], W.rings[2], W.rings[3], W.rings[4], W.rings[5]
 -- Indices: actions 1 DEF, 2 FLAG, 3 EFC, 4 ATTACK, 5 SCOUT, 6 INC.
 -- Places: 1 FR, 2 ROOF, 3 RAMP, 4 TUN, 5 GY, 6 MID (or action specific).
-local function last() return sent[#sent] end
+-- First line of the last macro = the chat message; second line = the ping.
+local function last() return (sent[#sent]:match("^[^\n]*")) end
+local function lastPing() return sent[#sent]:match("\n(.*)$") end
 
 print("== 1. DEF > Roof, release")
 looking = true
@@ -245,4 +247,19 @@ SlashCmdList.COMMANDANDCONQUER("debug")
 press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4", false)
 assert(last() == "/bg I have their flag, escort me", last())
 SlashCmdList.COMMANDANDCONQUER("debug")
+print("== 18. Pings sent with calls")
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[4]); moveTo(r5.nodes[1]); press("BUTTON4", false)
+assert(lastPing() == "/ping [@target,harm,nodead] attack", tostring(lastPing()))
+press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4", false)
+assert(lastPing() == "/ping [@player] assist", tostring(lastPing()))
+press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[6]); press("BUTTON4", false)
+assert(last() == "/bg Our flag is home, cap now" and lastPing() == nil, tostring(lastPing()))
+press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[4]); moveTo(r3.nodes[2]); press("BUTTON4", false)
+assert(last() == "/bg 2 incoming at our tunnel" and lastPing() == "/ping [@target,harm,nodead] warning", tostring(lastPing()))
+SlashCmdList.COMMANDANDCONQUER("ping")
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[6]); press("BUTTON4", false)
+assert(last() == "/bg Enemy carrier at mid" and lastPing() == nil, tostring(lastPing()))
+SlashCmdList.COMMANDANDCONQUER("ping")
+press("BUTTON4", true); moveTo(r1.nodes[3]); moveTo(r2.nodes[6]); press("BUTTON4", false)
+assert(lastPing() == "/ping [@target,harm,nodead] attack", tostring(lastPing()))
 print("ALL OK, sent " .. #sent .. " messages")

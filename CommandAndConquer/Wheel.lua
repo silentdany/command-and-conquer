@@ -119,7 +119,14 @@ local ON_CLICK = [[
   if not msg or msg == "" then
     return false
   end
-  self:SetAttribute("macrotext", self:GetAttribute("prefix") .. " " .. msg)
+  local text = self:GetAttribute("prefix") .. " " .. msg
+  if self:GetAttribute("pings") then
+    local ping = self:GetAttribute("p" .. self:GetAttribute("path"))
+    if ping then
+      text = text .. "\n" .. ping
+    end
+  end
+  self:SetAttribute("macrotext", text)
 ]]
 
 -- Mouse reaches a node. idx 0 = ring center: on ring 2 it cancels the
@@ -310,9 +317,11 @@ function W:Build()
   for a, action in ipairs(ns.ACTIONS) do
     send:SetAttribute("preset-" .. action.key, a)
   end
-  local msgs, nexts = ns.BuildTree()
+  local msgs, nexts, pings = ns.BuildTree()
   for path, msg in pairs(msgs) do send:SetAttribute("m" .. path, msg) end
   for path, ring in pairs(nexts) do send:SetAttribute("next-" .. path, ring) end
+  for path, ping in pairs(pings) do send:SetAttribute("p" .. path, ping) end
+  send:SetAttribute("pings", true)
 
   header:SetFrameRef("send", send)
   header:SetFrameRef("root", root)
@@ -519,6 +528,12 @@ end
 function W:SetScale(scale)
   if InCombatLockdown() then return false end
   for _, ring in ipairs(self.rings) do ring:SetScale(scale) end
+  return true
+end
+
+function W:SetPings(on)
+  if InCombatLockdown() then return false end
+  self.send:SetAttribute("pings", on and true or nil)
   return true
 end
 
