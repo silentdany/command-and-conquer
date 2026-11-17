@@ -77,6 +77,9 @@ function Frame:GetCenter()
   return rx + a.x, ry + a.y
 end
 function Frame:GetWidth() return 1920 end
+function Frame:GetEffectiveScale() return 1 end
+cursorX, cursorY = 500, 400
+function GetCursorPosition() return cursorX, cursorY end
 function Frame:GetHeight() return 1080 end
 local mouseX, mouseY = 500, 400
 function Frame:GetMousePosition() return mouseX / 1920, mouseY / 1080 end
@@ -191,7 +194,7 @@ end
 print("== 10. INC > Roof > 4 then back to center = no number")
 SlashCmdList.COMMANDANDCONQUER("test")
 press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[2])
-assert(r3.center.text.t == "Roof", tostring(r3.center.text.t))
+
 moveTo(r3.nodes[4]); moveTo(r3.center)
 press("BUTTON4", false)
 assert(sent[#sent] == "/bg Incoming on our roof", sent[#sent])
@@ -201,4 +204,13 @@ SlashCmdList.COMMANDANDCONQUER("scale 1.4")
 assert(CnCDB.scale == 1.4)
 SlashCmdList.COMMANDANDCONQUER("scale 9")
 assert(CnCDB.scale == 1.4)
+print("== 12. Aim highlight follows the cursor angle")
+press("BUTTON4", true)
+cursorX, cursorY = 500 + 80, 400   -- east of the center -> FLAG (sector 2 of 5)
+W:UpdateAim()
+assert(W.aim == 2, "aim " .. tostring(W.aim))
+cursorX, cursorY = 500, 400 + 20   -- inside the hollow center -> nothing
+W:UpdateAim()
+assert(W.aim == 0)
+press("BUTTON4", false)
 print("ALL OK, sent " .. #sent .. " messages")

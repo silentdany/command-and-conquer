@@ -6,31 +6,41 @@
 -- environment, and the message leaves on key release:
 --
 --   key down   -> secure snippet opens the wheel under the cursor
---   mouse move -> entering a node (secure OnEnter) picks action, choice, count
+--   mouse move -> reaching the icon of a sector (secure OnEnter on a small
+--                 hit frame) picks action, choice, count
 --   key up     -> secure snippet writes the macro text, the button runs it
 --
 -- Add-on (insecure) code only draws: it mirrors the secure state through
 -- the button's "state" attribute and never decides what is sent.
+--
+-- Look: pie sectors with a thin bronze border, white icons, small caps
+-- labels, lighter sector under the cursor (Dany's mockups, 17/11/2026).
 
 local _, ns = ...
 
 local W = {}
 ns.Wheel = W
 
-local MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local BUTTON_NAME = "CnCWheelButton"
 
--- Big centers are dead zones: small hand jitter right after a ring opens
--- under the cursor picks nothing (v0.1 felt too sensitive in game).
+-- outer = wheel radius. Icons sit in the middle of the sector band. The
+-- secure hit frame is only the icon area: the cursor must reach the icon
+-- to pick a sector (v0.2 still felt too sensitive). Centers are dead
+-- zones: cancel (ring 2) and "no number" (ring 3).
 local RINGS = {
-  { n = 5, radius = 104, size = 78 },              -- actions
-  { n = 8, radius = 112, size = 72, center = 80 }, -- choices (center = cancel)
-  { n = 5, radius = 96, size = 58, center = 72 },  -- enemy count (center = no number)
+  { n = 5, outer = 150, icon = 42, hit = 46 },                -- actions
+  { n = 8, outer = 168, icon = 38, hit = 44, center = true }, -- choices
+  { n = 5, outer = 138, icon = 0, hit = 46, center = true },  -- enemy count (INC)
 }
+local INNER_RATIO = 0.32 -- inner radius / outer radius, baked in the textures
+local TEX_RATIO = 0.96   -- wheel diameter / texture size, baked in the textures
+local ICON_RATIO = 0.66  -- icon distance from the center / outer radius
 
-local COLOR_IDLE = { 0.05, 0.05, 0.07, 0.62 }
-local COLOR_HOT = { 0.95, 0.72, 0.15, 0.90 }
-local COLOR_CENTER = { 0.0, 0.0, 0.0, 0.45 }
+local COLOR_IDLE = { 0.07, 0.065, 0.06, 0.78 }
+local COLOR_AIM = { 0.20, 0.19, 0.18, 0.80 }
+local COLOR_HOT = { 0.60, 0.59, 0.56, 0.50 }
+local COLOR_ENEMY = { 0.86, 0.20, 0.18, 1 }
+local COLOR_LABEL = { 0.93, 0.93, 0.93, 1 }
 
 ---------------------------------------------------------------------------
 -- Secure snippets (run in the restricted environment)
@@ -144,52 +154,64 @@ local ON_ENTER = [[
 W.ON_CLICK = ON_CLICK
 W.ON_ENTER = ON_ENTER
 
+
 ---------------------------------------------------------------------------
 -- Frames (built once, out of combat)
 ---------------------------------------------------------------------------
 
-local function setColor(tex, c)
-  tex:SetVertexColor(c[1], c[2], c[3], c[4])
+local function setColor(region, c)
+  region:SetVertexColor(c[1], c[2], c[3], c[4])
 end
 
-local function makeNode(parent, ring, idx, size)
+-- Rotate a square texture around its center, counter-clockwise.
+local function rotate(tex, angle)
+  if tex.SetRotation then
+    tex:SetRotation(angle)
+    return
+  end
+  local c, s = math.cos(angle), math.sin(angle)
+  local function uv(x, y)
+    return 0.5 + x * c + y * s, 0.5 - (-x * s + y * c)
+  end
+  local ulx, uly = uv(-0.5, 0.5)
+  local llx, lly = uv(-0.5, -0.5)
+  local urx, ury = uv(0.5, 0.5)
+  local lrx, lry = uv(0.5, -0.5)
+  tex:SetTexCoord(ulx, uly, llx, lly, urx, ury, lrx, lry)
+end
+
+local function makeText(parent, size)
+  local fs = parent:CreateFontString(nil, "OVERLAY")
+  fs:SetFont(STANDARD_TEXT_FONT, size, "")
+  fs:SetShadowOffset(1, -1)
+  fs:SetShadowColor(0, 0, 0, 0.9)
+  setColor(fs, COLOR_LABEL)
+  return fs
+end
+
+-- Secure hit frame at the icon position, with the icon and label on it.
+local function makeNode(parent, ringIndex, idx, spec)
   local f = CreateFrame("Frame", nil, parent, "SecureFrameTemplate")
-  f:SetSize(size, size)
+  f:SetSize(spec.hit, spec.hit)
   if f.SetMouseMotionEnabled and f.SetMouseClickEnabled then
     f:SetMouseMotionEnabled(true)
     f:SetMouseClickEnabled(false) -- clicks go through to the game
   else
     f:EnableMouse(true)
   end
-  f:SetAttribute("ring", ring)
+  f:SetAttribute("ring", ringIndex)
   f:SetAttribute("idx", idx)
   f:SetScript("OnEnter", function() end)
 
-  f.bg = f:CreateTexture(nil, "BACKGROUND")
-  f.bg:SetTexture(MASK)
-  f.bg:SetAllPoints()
-  setColor(f.bg, COLOR_IDLE)
-
   f.icon = f:CreateTexture(nil, "ARTWORK")
   f.icon:SetPoint("CENTER")
-  f.icon:SetSize(size * 0.62, size * 0.62)
-  if f.CreateMaskTexture then
-    local mask = f:CreateMaskTexture()
-    mask:SetTexture(MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    mask:SetAllPoints(f.icon)
-    f.icon:AddMaskTexture(mask)
-  end
-  f.icon:Hide()
+  f.icon:SetSize(spec.icon > 0 and spec.icon or 1, spec.icon > 0 and spec.icon or 1)
 
-  f.text = f:CreateFontString(nil, "OVERLAY")
-  f.text:SetFont(STANDARD_TEXT_FONT, ring == 3 and 16 or 12, "OUTLINE")
-  f.text:SetPoint("CENTER")
-  f.text:SetWidth(size - 4)
+  f.label = makeText(f, 12)
+  f.label:SetPoint("TOP", f, "BOTTOM", 0, 1)
 
-  f.label = f:CreateFontString(nil, "OVERLAY")
-  f.label:SetFont(STANDARD_TEXT_FONT, 10, "OUTLINE")
-  f.label:SetPoint("TOP", f, "BOTTOM", 0, -1)
-  f.label:SetTextColor(0.85, 0.85, 0.85, 0.8)
+  f.big = makeText(f, 24) -- numbers on the count ring
+  f.big:SetPoint("CENTER")
   return f
 end
 
@@ -199,17 +221,41 @@ local function makeRing(root, ringIndex)
   ring:SetSize(1, 1)
   ring:SetPoint("CENTER", root, "CENTER")
   ring:Hide()
-  ring.nodes = {}
+
+  local side = 2 * spec.outer / TEX_RATIO
+  local tex = ns.MEDIA .. "sector" .. spec.n
+  ring.fills, ring.nodes = {}, {}
   for i = 1, spec.n do
+    local angle = -math.rad((i - 1) * 360 / spec.n) -- clockwise from the top
+    local fill = ring:CreateTexture(nil, "BACKGROUND")
+    fill:SetTexture(tex .. "_fill")
+    fill:SetSize(side, side)
+    fill:SetPoint("CENTER")
+    rotate(fill, angle)
+    setColor(fill, COLOR_IDLE)
+    ring.fills[i] = fill
+
+    local border = ring:CreateTexture(nil, "BORDER")
+    border:SetTexture(tex .. "_border")
+    border:SetSize(side, side)
+    border:SetPoint("CENTER")
+    rotate(border, angle)
+
     local bearing = math.rad((i - 1) * 360 / spec.n)
-    local node = makeNode(ring, ringIndex, i, spec.size)
-    node:SetPoint("CENTER", ring, "CENTER", math.sin(bearing) * spec.radius, math.cos(bearing) * spec.radius)
+    local r = spec.outer * ICON_RATIO
+    local node = makeNode(ring, ringIndex, i, spec)
+    node:SetPoint("CENTER", ring, "CENTER", math.sin(bearing) * r, math.cos(bearing) * r)
     ring.nodes[i] = node
   end
+
   if spec.center then
-    local center = makeNode(ring, ringIndex, 0, spec.center)
+    local inner = spec.outer * INNER_RATIO
+    local disc = ring:CreateTexture(nil, "BORDER", nil, 1)
+    disc:SetTexture(ns.MEDIA .. "center")
+    disc:SetSize(2 * inner / 0.94, 2 * inner / 0.94)
+    disc:SetPoint("CENTER")
+    local center = makeNode(ring, ringIndex, 0, { hit = inner * 1.5, icon = 36 })
     center:SetPoint("CENTER", ring, "CENTER")
-    setColor(center.bg, COLOR_CENTER)
     ring.center = center
   end
   return ring
@@ -267,24 +313,29 @@ function W:Build()
     if ring.center then header:WrapScript(ring.center, "OnEnter", ON_ENTER) end
   end
 
-  -- Static visuals: action icons on ring 1, counts on ring 3.
+  -- Static visuals: actions on ring 1, counts on ring 3.
   for a, action in ipairs(ns.ACTIONS) do
     local node = rings[1].nodes[a]
-    node.icon:SetTexture(ns.ResolveIcon(action.icon))
-    node.icon:Show()
+    node.icon:SetTexture(ns.IconPath(action.icon))
     node.label:SetText(action.label)
   end
   for k, count in ipairs(ns.COUNTS) do
-    rings[3].nodes[k].text:SetText(count)
+    rings[3].nodes[k].big:SetText(count)
+    rings[3].nodes[k].icon:Hide()
   end
+
+  -- Lights the sector the cursor points at, before it reaches the icon.
+  -- Plain frame inside the root: shown only while the wheel is open.
+  local aim = CreateFrame("Frame", nil, root)
+  aim:SetSize(1, 1)
+  aim:SetScript("OnUpdate", function() W:UpdateAim() end)
 
   -- What will be sent, above the active ring. Plain (insecure) frame so
   -- add-on code can move it in combat.
   local preview = CreateFrame("Frame", nil, UIParent)
   preview:SetSize(1, 1)
   preview:SetFrameStrata("FULLSCREEN_DIALOG")
-  preview.text = preview:CreateFontString(nil, "OVERLAY")
-  preview.text:SetFont(STANDARD_TEXT_FONT, 13, "OUTLINE")
+  preview.text = makeText(preview, 14)
   preview.text:SetPoint("BOTTOM")
   preview.text:SetTextColor(1, 0.85, 0.3, 1)
   preview:Hide()
@@ -293,8 +344,7 @@ function W:Build()
   local toast = CreateFrame("Frame", nil, UIParent)
   toast:SetSize(1, 1)
   toast:SetFrameStrata("FULLSCREEN_DIALOG")
-  toast.text = toast:CreateFontString(nil, "OVERLAY")
-  toast.text:SetFont(STANDARD_TEXT_FONT, 14, "OUTLINE")
+  toast.text = makeText(toast, 15)
   toast.text:SetPoint("CENTER")
   toast.text:SetTextColor(1, 0.85, 0.3, 1)
   toast:Hide()
@@ -316,10 +366,47 @@ end
 -- Visual mirror of the secure state
 ---------------------------------------------------------------------------
 
-local function highlight(ring, selected)
-  for i, node in ipairs(ring.nodes) do
-    setColor(node.bg, i == selected and COLOR_HOT or COLOR_IDLE)
+function W:Paint()
+  local send = self.send
+  local step = send:GetAttribute("step") or 1
+  local selected = { 0, send:GetAttribute("c") or 0, send:GetAttribute("k") or 0 }
+  for r, ring in ipairs(self.rings) do
+    local aim = (r == step) and self.aim or 0
+    for i, fill in ipairs(ring.fills) do
+      if i == selected[r] then
+        setColor(fill, COLOR_HOT)
+      elseif i == aim then
+        setColor(fill, COLOR_AIM)
+      else
+        setColor(fill, COLOR_IDLE)
+      end
+    end
   end
+end
+
+function W:UpdateAim()
+  local step = self.send:GetAttribute("step") or 1
+  local ring, spec = self.rings[step], RINGS[step]
+  local cx, cy = ring:GetCenter()
+  if not cx then return end
+  local scale = ring:GetEffectiveScale()
+  local mx, my = GetCursorPosition()
+  local dx, dy = mx / scale - cx, my / scale - cy
+  local aim = 0
+  local inner = spec.outer * INNER_RATIO
+  if dx * dx + dy * dy > inner * inner then
+    local bearing = math.deg(math.atan2(dx, dy)) % 360
+    aim = math.floor((bearing + 180 / spec.n) / (360 / spec.n)) % spec.n + 1
+  end
+  if aim ~= self.aim or step ~= self.aimStep then
+    self.aim, self.aimStep = aim, step
+    self:Paint()
+  end
+end
+
+local function setIcon(node, choiceOrAction)
+  node.icon:SetTexture(ns.IconPath(choiceOrAction.icon))
+  setColor(node.icon, choiceOrAction.enemy and COLOR_ENEMY or { 1, 1, 1, 1 })
 end
 
 function W:ShowToast(msg)
@@ -351,6 +438,7 @@ function W:Refresh()
   end
 
   if state == "open" then
+    self.aim, self.aimStep = 0, nil
     -- The cursor is hidden while the camera is held with right click:
     -- free it so the gesture can be read, give the camera back on close.
     if IsMouselooking and IsMouselooking() then
@@ -361,33 +449,34 @@ function W:Refresh()
 
   local a = send:GetAttribute("a") or 0
   local c = send:GetAttribute("c") or 0
-  local k = send:GetAttribute("k") or 0
   local action = ns.ACTIONS[a]
-
-  -- Ring 3 center shows the place locked in by step 2.
-  local center3 = self.rings[3].center
-  center3.text:SetText(action and c > 0 and action.choices[c].label or "")
 
   if action and self.labelsFor ~= a then
     self.labelsFor = a
     for i, node in ipairs(self.rings[2].nodes) do
-      node.text:SetText(action.choices[i].label)
+      local choice = action.choices[i]
+      setIcon(node, choice)
+      node.label:SetText(choice.label)
     end
-    local center = self.rings[2].center
-    center.icon:SetTexture(ns.ResolveIcon(action.icon))
-    center.icon:Show()
+    setIcon(self.rings[2].center, action)
   end
 
-  highlight(self.rings[2], c)
-  highlight(self.rings[3], k)
+  -- Ring 3 center shows the place locked in by step 2.
+  if action and c > 0 then
+    setIcon(self.rings[3].center, action.choices[c])
+  end
+
+  self:Paint()
 
   local step = send:GetAttribute("step") or 1
   local ring, spec = self.rings[step], RINGS[step]
   local x, y = ring:GetCenter()
   local msg = send:GetAttribute("msg") or ""
   if x and msg ~= "" then
+    -- Ring coordinates are in the ring's own scale (/cnc scale).
+    local k = ring:GetEffectiveScale() / UIParent:GetEffectiveScale()
     self.preview:ClearAllPoints()
-    self.preview:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y + spec.radius + spec.size / 2 + 8)
+    self.preview:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x * k, (y + spec.outer + 10) * k)
     self.preview.text:SetText(msg)
     self.preview:Show()
   else

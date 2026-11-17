@@ -11,6 +11,8 @@ Tout l'add-on est en anglais pour le moment.
 4. INC seulement : glisser vers le nombre d'ennemis (1 à 5+), ou relâcher pour envoyer sans nombre.
 5. Relâcher la touche : le message part en /bg. Revenir au centre avant de relâcher = rien n'est envoyé.
 
+Le choix se déclenche quand le curseur atteint l'icône d'une part ; la part visée s'éclaire avant.
+
 Un même lieu garde la même direction dans toutes les actions (salle en haut, tunnel en bas, rampe à droite, côté GY à gauche…), pour que la main apprenne le geste.
 Des touches directes (INC, EFC, FLAG, DEF, ATTACK) sautent l'étape 1.
 
@@ -48,6 +50,7 @@ Ensuite :
 | `probe/CnCProbe/` | Add-on de test : qu'est-ce qu'un add-on a le droit d'envoyer, et où |
 | `tools/update-cnc.bat` | Mise à jour en un double-clic depuis GitHub (Windows), à placer dans `Interface/AddOns/` |
 | `tools/wheelsim.lua` | Test hors jeu de la roue (émule l'API WoW et le code sécurisé) : `lua5.1 tools/wheelsim.lua CommandAndConquer` |
+| `tools/make_media.py` | Génère les textures de la roue et les icônes (game-icons.net, CC BY 3.0, voir `CommandAndConquer/CREDITS.md`) |
 | `docs/` | Carte des messages validée |
 
 ## Jalons
@@ -55,5 +58,5 @@ Ensuite :
 | Jalon | Statut |
 |---|---|
 | 1. Un add-on peut-il écrire en /bg sur Forever ? | Fait : non en direct, oui par bouton sécurisé |
-| 2. Prototype de la roue (étapes 1 à 3) | v0.1 testée en jeu par Dany (marche, trop sensible) ; v0.2 : roue plus grande, centres neutres, `/cnc scale` |
+| 2. Prototype de la roue (étapes 1 à 3) | v0.1 testée en jeu (marche, trop sensible) ; v0.3 : visuel des maquettes (parts, icônes fantasy), déclenchement au centre de l'icône |
 | 3. Premier essai en BG réel | À faire |

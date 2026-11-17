@@ -1,4 +1,5 @@
 -- Wheel content, from docs/mapping-roue-v3.md (validated 17/11/2026).
+-- All text is English for now (decision 17/11/2026).
 --
 -- Step 1: 5 actions, clockwise from the top.
 -- Step 2: 8 choices on a compass, clockwise from the top:
@@ -6,76 +7,78 @@
 -- A place keeps the same direction in every action, so the hand learns
 -- the gesture: flag room N, roof NE, ramp E, tunnel S, GY side W,
 -- balcony NW, mid east SE, mid west SW.
--- All text is English for now (decision 17/11/2026).
 -- Step 3 (INC only): number of enemies, clockwise from the top.
+--
+-- icon = file in Media/icons (game-icons.net, see CREDITS.md).
+-- enemy = true draws the icon red: a place on their side.
 
 local _, ns = ...
 
 ns.ACTIONS = {
   {
-    key = "DEF", label = "DEF", icon = "Interface\\Icons\\INV_Shield_06",
+    key = "DEF", label = "DEF", icon = "def",
     choices = {
-      { label = "FR", msg = "Defend our flag room" },
-      { label = "Roof", msg = "Defend our roof" },
-      { label = "Ramp", msg = "Defend our ramp" },
-      { label = "Escort", msg = "Protect our flag carrier" },
-      { label = "Tunnel", msg = "Defend our tunnel" },
-      { label = "Turtle", msg = "Everyone defend our base (turtle)" },
-      { label = "Lobby", msg = "Guard our GY side entrance" },
-      { label = "Balcony", msg = "Defend our balcony" },
+      { label = "FR", icon = "flag", msg = "Defend our flag room" },
+      { label = "ROOF", icon = "roof", msg = "Defend our roof" },
+      { label = "RAMP", icon = "ramp", msg = "Defend our ramp" },
+      { label = "ESCORT", icon = "escort", msg = "Protect our flag carrier" },
+      { label = "TUN", icon = "tunnel", msg = "Defend our tunnel" },
+      { label = "TURTLE", icon = "turtle", msg = "Everyone defend our base (turtle)" },
+      { label = "LOBBY", icon = "lobby", msg = "Guard our GY side entrance" },
+      { label = "BALC", icon = "balcony", msg = "Defend our balcony" },
     },
   },
   {
-    key = "FLAG", label = "FLAG", icon = "THEIR_FLAG",
+    key = "FLAG", label = "FLAG", icon = "flag",
     choices = {
-      { label = "Got it", msg = "I have their flag, escort me" },
-      { label = "Help", msg = "Our flag carrier needs help (peel)" },
-      { label = "Ramp", msg = "Our flag carrier going ramp" },
-      { label = "Cap!", msg = "Our flag is home, cap now" },
-      { label = "Tunnel", msg = "Our flag carrier going tunnel" },
-      { label = "Stuck", msg = "Can't cap, get our flag back" },
-      { label = "GY side", msg = "Our flag carrier going GY side" },
-      { label = "Pick up", msg = "Their flag dropped, pick it up" },
+      { label = "GOT IT", icon = "flag", msg = "I have their flag, escort me" },
+      { label = "HELP", icon = "help", msg = "Our flag carrier needs help (peel)" },
+      { label = "RAMP", icon = "ramp", msg = "Our flag carrier going ramp" },
+      { label = "CAP!", icon = "cap", msg = "Our flag is home, cap now" },
+      { label = "TUN", icon = "tunnel", msg = "Our flag carrier going tunnel" },
+      { label = "STUCK", icon = "stuck", msg = "Can't cap, get our flag back" },
+      { label = "GY", icon = "gy", msg = "Our flag carrier going GY side" },
+      { label = "PICK UP", icon = "pickup", msg = "Their flag dropped, pick it up" },
     },
   },
   {
-    key = "EFC", label = "EFC", icon = "OUR_FLAG",
+    key = "EFC", label = "EFC", icon = "efc",
     choices = {
-      { label = "EFR", msg = "Enemy carrier in their flag room" },
-      { label = "Their roof", msg = "Enemy carrier on their roof" },
-      { label = "Ramp", msg = "Enemy carrier at our ramp" },
-      { label = "Mid E", msg = "Enemy carrier mid east" },
-      { label = "Tunnel", msg = "Enemy carrier at our tunnel (EFC)" },
-      { label = "Mid W", msg = "Enemy carrier mid west" },
-      { label = "GY side", msg = "Enemy carrier at our GY side" },
-      { label = "Dropped", msg = "Our flag dropped, click to return" },
+      { label = "EFR", icon = "flag", enemy = true, msg = "Enemy carrier in their flag room" },
+      { label = "E-ROOF", icon = "roof", enemy = true, msg = "Enemy carrier on their roof" },
+      { label = "RAMP", icon = "ramp", msg = "Enemy carrier at our ramp" },
+      { label = "MID E", icon = "mid", msg = "Enemy carrier mid east" },
+      { label = "TUN", icon = "tunnel", msg = "Enemy carrier at our tunnel (EFC)" },
+      { label = "MID W", icon = "mid", msg = "Enemy carrier mid west" },
+      { label = "GY", icon = "gy", msg = "Enemy carrier at our GY side" },
+      { label = "DROPPED", icon = "dropped", msg = "Our flag dropped, click to return" },
     },
   },
   {
-    key = "ATTACK", label = "ATTACK", icon = "Interface\\Icons\\INV_Sword_04",
+    key = "ATTACK", label = "ATTACK", icon = "attack",
     choices = {
-      { label = "EFR", msg = "Attack their flag room (EFR)" },
-      { label = "Roof", msg = "Attack their roof" },
-      { label = "Ramp", msg = "Attack through their ramp" },
-      { label = "Mid", msg = "Take control of mid" },
-      { label = "Tunnel", msg = "Attack through their tunnel" },
-      { label = "Zerg", msg = "Everyone attack their base (zerg)" },
-      { label = "Banana", msg = "Group up at their banana" },
-      { label = "Balcony", msg = "Attack their balcony" },
+      { label = "EFR", icon = "flag", enemy = true, msg = "Attack their flag room (EFR)" },
+      { label = "ROOF", icon = "roof", enemy = true, msg = "Attack their roof" },
+      { label = "RAMP", icon = "ramp", enemy = true, msg = "Attack through their ramp" },
+      { label = "MID", icon = "mid", msg = "Take control of mid" },
+      { label = "TUN", icon = "tunnel", enemy = true, msg = "Attack through their tunnel" },
+      { label = "ZERG", icon = "zerg", msg = "Everyone attack their base (zerg)" },
+      { label = "BANANA", icon = "banana", enemy = true, msg = "Group up at their banana" },
+      { label = "BALC", icon = "balcony", enemy = true, msg = "Attack their balcony" },
     },
   },
   {
-    key = "INC", label = "INC", icon = "Interface\\Icons\\Ability_Warrior_Charge",
+    key = "INC", label = "INC", icon = "inc",
     count = true,
     choices = {
-      { label = "Banana", msg = "Incoming up our banana" },
-      { label = "Roof", msg = "Incoming on our roof" },
-      { label = "Ramp", msg = "Incoming at our ramp" },
-      { label = "Mid E", msg = "Incoming mid east" },
-      { label = "Tunnel", msg = "Incoming at our tunnel" },
-      { label = "Mid W", msg = "Incoming mid west" },
-      { label = "GY side", msg = "Incoming at our GY side" },
-      { label = "Balcony", msg = "Incoming from our balcony" },
+      { label = "BANANA", icon = "banana", msg = "Incoming up our banana" },
+      { label = "ROOF", icon = "roof", msg = "Incoming on our roof" },
+      { label = "RAMP", icon = "ramp", msg = "Incoming at our ramp" },
+      { label = "MID E", icon = "mid", msg = "Incoming mid east" },
+      { label = "TUN", icon = "tunnel", msg = "Incoming at our tunnel" },
+      { label = "MID W", icon = "mid", msg = "Incoming mid west" },
+      { label = "GY", icon = "gy", msg = "Incoming at our GY side" },
+      { label = "BALC", icon = "balcony", msg = "Incoming from our balcony" },
     },
   },
 }
@@ -90,16 +93,8 @@ function ns.CountMessage(msg, count)
   return count .. " " .. msg:gsub("^Incoming", "incoming")
 end
 
--- Flag icons depend on the player's faction.
-local ALLIANCE_FLAG = "Interface\\Icons\\INV_BannerPVP_02"
-local HORDE_FLAG = "Interface\\Icons\\INV_BannerPVP_01"
+ns.MEDIA = "Interface\\AddOns\\CommandAndConquer\\Media\\"
 
-function ns.ResolveIcon(icon)
-  local faction = UnitFactionGroup("player")
-  if icon == "OUR_FLAG" then
-    return faction == "Horde" and HORDE_FLAG or ALLIANCE_FLAG
-  elseif icon == "THEIR_FLAG" then
-    return faction == "Horde" and ALLIANCE_FLAG or HORDE_FLAG
-  end
-  return icon
+function ns.IconPath(name)
+  return ns.MEDIA .. "icons\\" .. name
 end
