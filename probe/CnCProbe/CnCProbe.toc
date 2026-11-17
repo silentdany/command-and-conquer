@@ -2,7 +2,7 @@
 ## Title: Command & Conquer - Probe
 ## Notes: Test : un add-on peut-il écrire en /bg sur ce client ?
 ## Author: silentdany
-## Version: 0.3.0
+## Version: 0.4.0
 ## SavedVariables: CnCProbeDB
 
 CnCProbe.lua

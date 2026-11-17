@@ -300,6 +300,50 @@ local function showPingButton()
   out("Dis-moi si tu le vois, et s'il y a un message d'erreur. /cnct hide pour cacher les boutons.")
 end
 
+-- Map locations: can the add-on read the player's map position, ping the
+-- minimap, and build a shareable map pin link, in a battleground?
+local function mapInfo()
+  local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+  local name = mapID and C_Map.GetMapInfo and C_Map.GetMapInfo(mapID)
+  out("Carte : %s (%s)", tostring(mapID), name and tostring(name.name) or "?")
+
+  local x, y
+  if mapID and C_Map.GetPlayerMapPosition then
+    local ok, pos = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
+    if ok and pos then
+      local okXY, px, py = pcall(function() return pos:GetXY() end)
+      if okXY then x, y = px, py end
+    end
+  end
+  local okSecret = x and pcall(function() return x + 0 end)
+  out("Position sur la carte : %s", x and (okSecret and ("%.3f, %.3f"):format(x, y) or "secret (illisible)") or "indisponible")
+
+  local okUP, ux, uy = pcall(UnitPosition, "player")
+  out("UnitPosition : %s", (okUP and ux) and "lisible" or "indisponible")
+
+  if Minimap and Minimap.PingLocation then
+    lastRecord = nil
+    local ok, err = pcall(Minimap.PingLocation, Minimap, 0, 0)
+    out("Ping minicarte sur toi : %s. Regarde ta minicarte (et demande à un allié).",
+      ok and "appel accepté" or ("erreur : " .. tostring(err)))
+  else
+    out("Ping minicarte : fonction absente")
+  end
+
+  if mapID and C_Map.CanSetUserWaypointOnMap and UiMapPoint and x and okSecret then
+    local can = C_Map.CanSetUserWaypointOnMap(mapID)
+    out("Repère de carte autorisé ici : %s", tostring(can))
+    if can then
+      local ok = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x, y))
+      local link = ok and C_Map.GetUserWaypointHyperlink and C_Map.GetUserWaypointHyperlink()
+      out("Lien de repère : %s", link or "aucun")
+      if C_Map.ClearUserWaypoint then C_Map.ClearUserWaypoint() end
+    end
+  else
+    out("Repère de carte : API absente ou position illisible")
+  end
+end
+
 local secureButton
 local function nextSecureText()
   local rec = track("secure", "macro /bg", ECHO_TIMEOUT)
@@ -490,6 +534,7 @@ local function help()
   out("/cnct run [auto|bg|instance|battleground|party|raid|say|whisper] : lance les tests (auto par défaut)")
   out("/cnct secure : bouton de test « macro /bg » à cliquer (hors combat)")
   out("/cnct ping : système de ping présent ? + bouton de test « /ping » (hors combat)")
+  out("/cnct map : position sur la carte, ping minicarte, repère de carte partageable")
   out("/cnct editbox : pré-remplit une ligne /bg, à envoyer avec Entrée")
   out("/cnct report : réaffiche le dernier rapport")
   out("/cnct clear : vide l'historique sauvegardé")
@@ -508,6 +553,8 @@ SlashCmdList.CNCPROBE = function(input)
     local rec = track("editbox", "editbox /bg", 30)
     openChat(("/bg CnC editbox test #%s, please ignore"):format(rec.nonce))
     out("Ligne pré-remplie : tape Entrée dans les 30 s.")
+  elseif cmd == "map" then
+    mapInfo()
   elseif cmd == "ping" then
     pingInfo()
     showPingButton()
