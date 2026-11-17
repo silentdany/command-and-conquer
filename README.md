@@ -1,48 +1,54 @@
 # Command & Conquer
 
-Add-on WoW (Classic Era / WoW: Forever) pour lancer des calls en Warsong Gulch avec une roue radiale.
-Une touche ouvre la roue sous le curseur, on glisse la souris vers un choix, l'add-on écrit une phrase courte en anglais dans /bg.
+Add-on WoW: Forever (interface 16001) pour lancer des calls en Warsong Gulch avec une roue radiale.
+Tout l'add-on est en anglais pour le moment.
 
-- Étape 1 : action (DEF, ATTAQUE, INC, FLAG, RECUP)
-- Étape 2 : 8 choix selon l'action
-- Étape 3 : nombre d'ennemis (1 à 5+), seulement après INC
+**Geste : tenir la touche, glisser, relâcher.**
 
-Carte complète des messages : [docs/mapping-roue-v3.md](docs/mapping-roue-v3.md).
+1. Appuyer sur la touche de la roue et la garder enfoncée : la roue s'ouvre sous le curseur.
+2. Glisser vers une action : DEF, FLAG, EFC, ATTACK, INC.
+3. Glisser vers un choix (8 choix par action).
+4. INC seulement : glisser vers le nombre d'ennemis (1 à 5+), ou relâcher pour envoyer sans nombre.
+5. Relâcher la touche : le message part en /bg. Revenir au centre avant de relâcher = rien n'est envoyé.
 
-## Où en est le projet
+Un même lieu garde la même direction dans toutes les actions (salle en haut, tunnel en bas, rampe à droite, côté GY à gauche…), pour que la main apprenne le geste.
+Des touches directes (INC, EFC, FLAG, DEF, ATTACK) sautent l'étape 1.
+
+Carte complète des messages : [docs/mapping-roue-v3.md](docs/mapping-roue-v3.md). Directions et libellés : [CommandAndConquer/Data.lua](CommandAndConquer/Data.lua).
+
+## Pourquoi « relâcher pour envoyer »
+
+Testé en jeu le 17/11/2026 (Forever 1.60.1, build 70938) avec `probe/CnCProbe` :
+
+| Contexte | Hors BG | Dans le Goulet |
+|---|---|---|
+| `SendChatMessage` appelé par un add-on | OK | Bloqué (`ADDON_ACTION_BLOCKED`) |
+| Bouton sécurisé qui lance une macro `/bg …` sur un clic ou une touche du joueur | OK | **OK** |
+| Lecture du chat par un add-on | OK | Contenu caché (« secret ») |
+
+La roue utilise donc un bouton sécurisé : tout le choix (action, lieu, nombre) se fait dans l'environnement sécurisé du jeu, et la macro part au relâchement de la touche, qui est une action du joueur.
+
+## Installer
+
+Copier le dossier `CommandAndConquer` dans `Interface/AddOns/` du client Forever, puis :
+
+1. Échap > Raccourcis > AddOns > Command & Conquer : lier « Call wheel » à une touche (un bouton latéral de souris est idéal).
+2. `/cnc test` : mode test, les calls te sont chuchotés au lieu de partir en /bg. Refaire `/cnc test` pour revenir en /bg.
+3. `/cnc status` : mode et touches liées.
+
+## Structure
+
+| Dossier | Rôle |
+|---|---|
+| `CommandAndConquer/` | L'add-on |
+| `probe/CnCProbe/` | Add-on de test : qu'est-ce qu'un add-on a le droit d'envoyer, et où |
+| `tools/wheelsim.lua` | Test hors jeu de la roue (émule l'API WoW et le code sécurisé) : `lua5.1 tools/wheelsim.lua CommandAndConquer` |
+| `docs/` | Carte des messages validée |
+
+## Jalons
 
 | Jalon | Statut |
 |---|---|
-| 1. Un add-on peut-il écrire en /bg sur Forever ? | Add-on de test prêt (`probe/CnCProbe`), à lancer en jeu |
-| 2. Prototype de la roue (étapes 1 à 3) | Pas commencé, dépend du jalon 1 |
-| 3. Premier essai en BG réel | Pas commencé |
-
-## Jalon 1 : l'add-on de test (CnCProbe)
-
-### Installer
-
-Copier le dossier `probe/CnCProbe` dans `World of Warcraft/<version>/Interface/AddOns/`.
-Si l'add-on est marqué « périmé », cocher « Charger les add-ons périmés » dans la liste des add-ons.
-
-### Tester
-
-1. `/cnct info` : version du client et API disponibles.
-2. Hors BG, pour vérifier que tout marche : `/cnct run` (seul, il se chuchote à lui-même ; en groupe, il écrit en /p).
-3. Dans le Goulet : `/cnct run`. Le rapport s'affiche au bout de ~9 s, avec un verdict.
-4. Optionnel : lier une touche (Échap > Raccourcis > AddOns > Command & Conquer Probe), puis l'appuyer et la relâcher en BG.
-
-Ce que le test mesure :
-
-| Test | Contexte d'envoi | Ce que ça dit pour la roue |
-|---|---|---|
-| `slash` | Commande tapée (touche Entrée) | Envoi possible depuis une action du joueur |
-| `binding` | Relâchement d'une touche liée | La roue peut envoyer au relâchement de sa touche |
-| `timer` / `onupdate` | Code sans action du joueur | La roue peut envoyer dès le glissé, comme prévu |
-| `addon` | Message add-on à add-on | Repli : seuls les joueurs équipés le voient |
-
-`/cnct editbox` pré-remplit une ligne /bg (envoi manuel avec Entrée) : c'est le repli si tout est bloqué.
-
-### Renvoyer les résultats
-
-Le plus simple : une capture du rapport dans le chat.
-Sinon, le fichier `WTF/Account/<COMPTE>/SavedVariables/CnCProbe.lua` garde les 30 derniers tests.
+| 1. Un add-on peut-il écrire en /bg sur Forever ? | Fait : non en direct, oui par bouton sécurisé |
+| 2. Prototype de la roue (étapes 1 à 3) | v0.1 prête, à tester en jeu |
+| 3. Premier essai en BG réel | À faire |

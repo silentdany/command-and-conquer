@@ -1,0 +1,10 @@
+<Bindings>
+  <!-- Bodies are empty on purpose: Core.lua maps these keys to the secure
+       wheel button with override bindings, so the release is a hardware click. -->
+  <Binding name="CNC_WHEEL" header="CNC">-- secure override binding</Binding>
+  <Binding name="CNC_INC">-- secure override binding</Binding>
+  <Binding name="CNC_EFC">-- secure override binding</Binding>
+  <Binding name="CNC_FLAG">-- secure override binding</Binding>
+  <Binding name="CNC_DEF">-- secure override binding</Binding>
+  <Binding name="CNC_ATTACK">-- secure override binding</Binding>
+</Bindings>
