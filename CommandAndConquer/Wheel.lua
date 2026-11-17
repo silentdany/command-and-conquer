@@ -10,6 +10,7 @@
 --                 hit frame) picks action, choice, count
 --   key up     -> secure snippet writes the macro text, the button runs it
 --   right click -> one step back; a second right click in a row closes
+--                 (a screen-wide right-button catcher shown with the wheel)
 --
 -- Add-on (insecure) code only draws: it mirrors the secure state through
 -- the button's "state" attribute and never decides what is sent.
@@ -60,63 +61,15 @@ local COLOR_LABEL = { 0.93, 0.93, 0.93, 1 }
 -- Steps after 2 are optional: releasing sends what is picked so far.
 
 -- Pre-click on the wheel button. `button` is "LeftButton" for the main
--- binding, an action key ("INC", ...) for the direct bindings, or "BACK"
--- for the right click bound while the wheel is open.
+-- binding, or an action key ("INC", ...) for the direct bindings.
 local ON_CLICK = [[
   local root = owner:GetFrameRef("root")
   local screen = owner:GetFrameRef("screen")
-
-  if button == "BACK" then
-    -- One step back. A second right click in a row (no new pick in
-    -- between) closes the wheel.
-    if not down or not root:IsShown() then
-      return false
-    end
-    local step = self:GetAttribute("step")
-    if step == 1 or self:GetAttribute("backs") == 1 then
-      root:Hide()
-      owner:ClearBindings()
-      self:SetAttribute("msg", "")
-      self:SetAttribute("state", "closed")
-      return false
-    end
-    self:SetAttribute("backs", 1)
-    local prev = self:GetAttribute("prev" .. step)
-    local base = self:GetAttribute("prevbase" .. step)
-    owner:GetFrameRef("r" .. step):Hide()
-    self:SetAttribute("sel" .. step, 0)
-    self:SetAttribute("sel" .. prev, 0)
-    self:SetAttribute("step", prev)
-    self:SetAttribute("base", base)
-    self:SetAttribute("path", base)
-    if prev <= 2 then
-      self:SetAttribute("msg", "")
-    else
-      self:SetAttribute("msg", self:GetAttribute("m" .. base) or "")
-    end
-    if prev == 1 then
-      self:SetAttribute("a", 0)
-    end
-    -- The previous ring comes back centered on the cursor, so the cursor
-    -- sits in its dead center and picks nothing by accident.
-    local back = owner:GetFrameRef("r" .. prev)
-    local x, y = screen:GetMousePosition()
-    back:ClearAllPoints()
-    if x and y then
-      back:SetPoint("CENTER", screen, "BOTTOMLEFT", x * screen:GetWidth(), y * screen:GetHeight())
-    else
-      back:SetPoint("CENTER", root, "CENTER")
-    end
-    back:Show()
-    self:SetAttribute("state", "back:" .. prev .. ":" .. base)
-    return false
-  end
 
   if down then
     if root:IsShown() then
       -- Second press while open (lost key-up): close without sending.
       root:Hide()
-      owner:ClearBindings()
       self:SetAttribute("msg", "")
       self:SetAttribute("state", "closed")
       return false
@@ -159,8 +112,6 @@ local ON_CLICK = [[
       r1:Show()
     end
     root:Show()
-    -- Right click = back, only while the wheel is open.
-    owner:SetBindingClick(true, "BUTTON2", "CnCWheelButton", "BACK")
     self:SetAttribute("state", "open")
     return false
   end
@@ -169,13 +120,63 @@ local ON_CLICK = [[
     return false
   end
   root:Hide()
-  owner:ClearBindings()
   local msg = self:GetAttribute("msg")
   self:SetAttribute("state", "closed")
   if not msg or msg == "" then
     return false
   end
   self:SetAttribute("macrotext", self:GetAttribute("prefix") .. " " .. msg)
+]]
+
+-- Right click on the catcher (a screen-wide button shown with the wheel,
+-- right button only). WoW does not let BUTTON2 be bound, so a key binding
+-- could not do this (tested 17/11/2026).
+local ON_RIGHT = [[
+  local send = owner:GetFrameRef("send")
+  local root = owner:GetFrameRef("root")
+  local screen = owner:GetFrameRef("screen")
+  -- One step back. A second right click in a row (no new pick in
+  -- between) closes the wheel.
+  if not root:IsShown() then
+    return false
+  end
+  local step = send:GetAttribute("step")
+  if step == 1 or send:GetAttribute("backs") == 1 then
+    root:Hide()
+    send:SetAttribute("msg", "")
+    send:SetAttribute("state", "closed")
+    return false
+  end
+  send:SetAttribute("backs", 1)
+  local prev = send:GetAttribute("prev" .. step)
+  local base = send:GetAttribute("prevbase" .. step)
+  owner:GetFrameRef("r" .. step):Hide()
+  send:SetAttribute("sel" .. step, 0)
+  send:SetAttribute("sel" .. prev, 0)
+  send:SetAttribute("step", prev)
+  send:SetAttribute("base", base)
+  send:SetAttribute("path", base)
+  if prev <= 2 then
+    send:SetAttribute("msg", "")
+  else
+    send:SetAttribute("msg", send:GetAttribute("m" .. base) or "")
+  end
+  if prev == 1 then
+    send:SetAttribute("a", 0)
+  end
+  -- The previous ring comes back centered on the cursor, so the cursor
+  -- sits in its dead center and picks nothing by accident.
+  local back = owner:GetFrameRef("r" .. prev)
+  local x, y = screen:GetMousePosition()
+  back:ClearAllPoints()
+  if x and y then
+    back:SetPoint("CENTER", screen, "BOTTOMLEFT", x * screen:GetWidth(), y * screen:GetHeight())
+  else
+    back:SetPoint("CENTER", root, "CENTER")
+  end
+  back:Show()
+  send:SetAttribute("state", "back:" .. prev .. ":" .. base)
+  return false
 ]]
 
 -- Mouse reaches a node. idx 0 = ring center: on ring 2 it cancels the
@@ -230,6 +231,7 @@ local ON_ENTER = [[
 
 W.ON_CLICK = ON_CLICK
 W.ON_ENTER = ON_ENTER
+W.ON_RIGHT = ON_RIGHT
 
 
 ---------------------------------------------------------------------------
@@ -381,6 +383,19 @@ function W:Build()
   for r = 3, #rings do header:SetFrameRef("r" .. r, rings[r]) end
 
   header:WrapScript(send, "OnClick", ON_CLICK)
+
+  -- Right-click catcher: covers the screen while the wheel is open (child
+  -- of the root), under the nodes so their OnEnter still fires. Left
+  -- clicks pass through to the game when the client supports it.
+  local catcher = CreateFrame("Button", "CnCWheelRightClick", root, "SecureActionButtonTemplate")
+  catcher:SetAllPoints(screen)
+  catcher:SetFrameLevel(root:GetFrameLevel())
+  catcher:RegisterForClicks("RightButtonDown")
+  catcher:SetScript("OnClick", function() end)
+  if catcher.SetPassThroughButtons then
+    pcall(catcher.SetPassThroughButtons, catcher, "LeftButton")
+  end
+  header:WrapScript(catcher, "OnClick", ON_RIGHT)
   for _, ring in ipairs(rings) do
     for _, node in ipairs(ring.nodes) do header:WrapScript(node, "OnEnter", ON_ENTER) end
     if ring.center then header:WrapScript(ring.center, "OnEnter", ON_ENTER) end
@@ -437,6 +452,7 @@ function W:Build()
   end)
 
   self.header, self.screen, self.root, self.send = header, screen, root, send
+  self.catcher = catcher
   self.rings, self.preview, self.toast = rings, preview, toast
   self.built = true
 end
