@@ -7,7 +7,7 @@ Usage, from the repo root:
 
 Writes CommandAndConquer/Media/:
     sector5_fill.tga, sector5_border.tga   one sector of a 5-part wheel, pointing up
-    sector8_fill.tga, sector8_border.tga   one sector of an 8-part wheel, pointing up
+    sector6_fill.tga, sector6_border.tga   one sector of a 6-part wheel, pointing up
     center.tga                              center disc with its border
     icons/<name>.tga                        white game-icons.net icons, 64x64
 
@@ -42,6 +42,7 @@ ICONS = {
     "efc": "running-ninja",
     "attack": "broadsword",
     "inc": "hazard-sign",
+    "scout": "spyglass",
     "roof": "house",
     "ramp": "stairs",
     "tunnel": "dungeon-gate",
@@ -148,7 +149,7 @@ def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     make_sectors(5)
-    make_sectors(8)
+    make_sectors(6)
     make_center()
     make_icons(sys.argv[1])
     print("Media written to", os.path.normpath(OUT))

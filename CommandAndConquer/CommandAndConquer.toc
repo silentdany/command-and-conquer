@@ -2,7 +2,7 @@
 ## Title: Command & Conquer
 ## Notes: Call wheel for Warsong Gulch: hold the key, flick, release.
 ## Author: silentdany
-## Version: 0.3.1
+## Version: 0.4.0
 ## SavedVariables: CnCDB
 
 Data.lua

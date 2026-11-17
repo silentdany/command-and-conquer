@@ -3,20 +3,32 @@
 Add-on WoW: Forever (interface 16001) pour lancer des calls en Warsong Gulch avec une roue radiale.
 Tout l'add-on est en anglais pour le moment.
 
-**Geste : tenir la touche, glisser, relâcher.**
+**Geste : tenir la touche, glisser, relâcher.** 6 options maximum par roue.
 
 1. Appuyer sur la touche de la roue et la garder enfoncée : la roue s'ouvre sous le curseur.
-2. Glisser vers une action : DEF, FLAG, EFC, ATTACK, INC.
-3. Glisser vers un choix (8 choix par action).
-4. INC seulement : glisser vers le nombre d'ennemis (1 à 5+), ou relâcher pour envoyer sans nombre.
+2. Glisser vers une action : DEF, FLAG, EFC, ATTACK, SCOUT, INC.
+3. Glisser vers un choix (6 par action).
+4. INC et SCOUT : glisser vers le nombre d'ennemis (INC : 1 à 5+ ; SCOUT : CLEAR, 1 à 5+), ou relâcher pour envoyer sans nombre.
 5. Relâcher la touche : le message part en /bg. Revenir au centre avant de relâcher = rien n'est envoyé.
 
+Clic droit = une étape en arrière ; deux clics droits de suite = fermer la roue.
 Le choix se déclenche quand le curseur atteint l'icône d'une part ; la part visée s'éclaire avant.
 
-Un même lieu garde la même direction dans toutes les actions (salle en haut, tunnel en bas, rampe à droite, côté GY à gauche…), pour que la main apprenne le geste.
-Des touches directes (INC, EFC, FLAG, DEF, ATTACK) sautent l'étape 1.
+Un même lieu garde la même direction dans toutes les actions, pour que la main apprenne le geste :
 
-Carte complète des messages : [docs/mapping-roue-v3.md](docs/mapping-roue-v3.md). Directions et libellés : [CommandAndConquer/Data.lua](CommandAndConquer/Data.lua).
+| Direction | Lieu |
+|---|---|
+| Haut | Salle du drapeau (FR / EFR) |
+| Haut droite | Toit |
+| Bas droite | Rampe |
+| Bas | Tunnel |
+| Bas gauche | Côté GY |
+| Haut gauche | Mid |
+
+Les options qui ne sont pas des lieux prennent la place du lieu le moins utile pour l'action (ESCORT pour DEF, ZERG pour ATTACK, HELP et CAP! pour FLAG).
+Des touches directes (INC, SCOUT, EFC, FLAG, DEF, ATTACK) sautent l'étape 1.
+
+Carte actuelle des messages : [CommandAndConquer/Data.lua](CommandAndConquer/Data.lua). Base de départ validée : [docs/mapping-roue-v3.md](docs/mapping-roue-v3.md) (8 choix, réduite à 6 le 17/11/2026).
 
 ## Pourquoi « relâcher pour envoyer »
 
@@ -37,7 +49,7 @@ Mises à jour (Windows) : copier `tools/update-cnc.bat` dans `Interface/AddOns/`
 
 Ensuite :
 
-1. Échap > Raccourcis > AddOns > Command & Conquer : lier « Call wheel » à une touche (un bouton latéral de souris est idéal).
+1. Échap > Raccourcis > AddOns : lier « C&C: wheel » à une touche (un bouton latéral de souris est idéal).
 2. Automatique : en BG les calls partent en /bg ; ailleurs ils te sont chuchotés, pour t'entraîner.
 3. `/cnc scale 1.3` : taille de la roue (0.6 à 2, défaut 1).
 4. `/cnc status` : mode, taille et touches liées.
@@ -58,5 +70,5 @@ Ensuite :
 | Jalon | Statut |
 |---|---|
 | 1. Un add-on peut-il écrire en /bg sur Forever ? | Fait : non en direct, oui par bouton sécurisé |
-| 2. Prototype de la roue (étapes 1 à 3) | v0.1 testée en jeu (marche, trop sensible) ; v0.3 : visuel des maquettes (parts, icônes fantasy), déclenchement au centre de l'icône |
+| 2. Prototype de la roue (étapes 1 à 3) | v0.4 : 6 options par roue, action SCOUT, clic droit pour revenir ou fermer |
 | 3. Premier essai en BG réel | À faire |

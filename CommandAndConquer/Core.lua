@@ -10,12 +10,13 @@ local W = ns.Wheel
 local PREFIX = "|cff4fa3ffCommand & Conquer|r: "
 
 BINDING_HEADER_CNC = "Command & Conquer"
-BINDING_NAME_CNC_WHEEL = "Call wheel (hold, flick, release)"
-BINDING_NAME_CNC_INC = "INC wheel (direct)"
-BINDING_NAME_CNC_EFC = "EFC wheel (direct)"
-BINDING_NAME_CNC_FLAG = "FLAG wheel (direct)"
-BINDING_NAME_CNC_DEF = "DEF wheel (direct)"
-BINDING_NAME_CNC_ATTACK = "ATTACK wheel (direct)"
+BINDING_NAME_CNC_WHEEL = "C&C: wheel"
+BINDING_NAME_CNC_DEF = "C&C: DEF only"
+BINDING_NAME_CNC_FLAG = "C&C: FLAG only"
+BINDING_NAME_CNC_EFC = "C&C: EFC only"
+BINDING_NAME_CNC_ATTACK = "C&C: ATTACK only"
+BINDING_NAME_CNC_SCOUT = "C&C: SCOUT only"
+BINDING_NAME_CNC_INC = "C&C: INC only"
 
 local function out(fmt, ...)
   local text = select("#", ...) > 0 and fmt:format(...) or fmt
@@ -107,7 +108,7 @@ local function setup()
   W:SetScale(CnCDB.scale or 1)
   local count = applyBindings()
   if count == 0 then
-    out("bind a key in Esc > Key Bindings > AddOns > Command & Conquer.")
+    out("bind a key to \"C&C: wheel\" in Esc > Key Bindings > AddOns.")
   end
 end
 
@@ -117,7 +118,7 @@ end
 
 local function help()
   out("hold your wheel key, flick toward an action, then a choice, release to send.")
-  out("Back to the center before release = nothing sent.")
+  out("Back to the center before release = nothing sent. Right click = one step back, right click twice = close.")
   out("In a battleground calls go to /bg; anywhere else they are whispered to you (practice).")
   out("/cnc scale <0.6-2> : wheel size (default 1)")
   out("/cnc status : show mode and bound keys")

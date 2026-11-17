@@ -9,6 +9,7 @@
 --   mouse move -> reaching the icon of a sector (secure OnEnter on a small
 --                 hit frame) picks action, choice, count
 --   key up     -> secure snippet writes the macro text, the button runs it
+--   right click -> one step back; a second right click in a row closes
 --
 -- Add-on (insecure) code only draws: it mirrors the secure state through
 -- the button's "state" attribute and never decides what is sent.
@@ -27,10 +28,12 @@ local BUTTON_NAME = "CnCWheelButton"
 -- secure hit frame is only the icon area: the cursor must reach the icon
 -- to pick a sector (v0.2 still felt too sensitive). Centers are dead
 -- zones: cancel (ring 2) and "no number" (ring 3).
+-- 6 sectors max per wheel (Dany, 17/11/2026: bigger targets, less mess).
 local RINGS = {
-  { n = 5, outer = 150, icon = 42, hit = 46 },                -- actions
-  { n = 8, outer = 168, icon = 38, hit = 44, center = true }, -- choices
-  { n = 5, outer = 138, icon = 0, hit = 46, center = true },  -- enemy count (INC)
+  { n = 6, outer = 160, icon = 46, hit = 58 },                -- actions
+  { n = 6, outer = 165, icon = 44, hit = 56, center = true }, -- choices
+  { n = 5, outer = 140, icon = 0, hit = 52, center = true },  -- INC count
+  { n = 6, outer = 150, icon = 0, hit = 52, center = true },  -- SCOUT count
 }
 local INNER_RATIO = 0.32 -- inner radius / outer radius, baked in the textures
 local TEX_RATIO = 0.96   -- wheel diameter / texture size, baked in the textures
@@ -50,18 +53,62 @@ local COLOR_LABEL = { 0.93, 0.93, 0.93, 1 }
 -- binding, or an action key ("INC", ...) for the direct bindings.
 local ON_CLICK = [[
   local root = owner:GetFrameRef("root")
+  local screen = owner:GetFrameRef("screen")
   local r1 = owner:GetFrameRef("r1")
   local r2 = owner:GetFrameRef("r2")
   local r3 = owner:GetFrameRef("r3")
-  if down then
-    if root:IsShown() then
-      -- Second press while open (lost key-up): close without sending.
+  local r4 = owner:GetFrameRef("r4")
+
+  if button == "BACK" then
+    -- Right click while open: one step back. A second right click in a
+    -- row (no new pick in between) closes the wheel.
+    if not down or not root:IsShown() then
+      return false
+    end
+    local step = self:GetAttribute("step")
+    if step == 1 or self:GetAttribute("backs") == 1 then
       root:Hide()
+      owner:ClearBindings()
       self:SetAttribute("msg", "")
       self:SetAttribute("state", "closed")
       return false
     end
-    local screen = owner:GetFrameRef("screen")
+    self:SetAttribute("backs", 1)
+    r3:Hide()
+    r4:Hide()
+    local back = r2
+    if step == 2 then
+      r2:Hide()
+      back = r1
+      self:SetAttribute("a", 0)
+    end
+    self:SetAttribute("step", step == 2 and 1 or 2)
+    self:SetAttribute("c", 0)
+    self:SetAttribute("k", 0)
+    self:SetAttribute("msg", "")
+    -- The previous ring comes back centered on the cursor, so the cursor
+    -- sits in its dead center and picks nothing by accident.
+    local x, y = screen:GetMousePosition()
+    back:ClearAllPoints()
+    if x and y then
+      back:SetPoint("CENTER", screen, "BOTTOMLEFT", x * screen:GetWidth(), y * screen:GetHeight())
+    else
+      back:SetPoint("CENTER", root, "CENTER")
+    end
+    back:Show()
+    self:SetAttribute("state", "back:" .. self:GetAttribute("step") .. ":" .. self:GetAttribute("a"))
+    return false
+  end
+
+  if down then
+    if root:IsShown() then
+      -- Second press while open (lost key-up): close without sending.
+      root:Hide()
+      owner:ClearBindings()
+      self:SetAttribute("msg", "")
+      self:SetAttribute("state", "closed")
+      return false
+    end
     local x, y = screen:GetMousePosition()
     root:ClearAllPoints()
     if x and y then
@@ -72,7 +119,11 @@ local ON_CLICK = [[
     self:SetAttribute("c", 0)
     self:SetAttribute("k", 0)
     self:SetAttribute("msg", "")
+    self:SetAttribute("backs", 0)
     r3:Hide()
+    r4:Hide()
+    r1:ClearAllPoints()
+    r1:SetPoint("CENTER", root, "CENTER")
     local preset = self:GetAttribute("preset-" .. button)
     if preset then
       self:SetAttribute("a", preset)
@@ -88,13 +139,17 @@ local ON_CLICK = [[
       r1:Show()
     end
     root:Show()
+    -- Right click = back, only while the wheel is open.
+    owner:SetBindingClick(true, "BUTTON2", "CnCWheelButton", "BACK")
     self:SetAttribute("state", "open")
     return false
   end
+
   if not root:IsShown() then
     return false
   end
   root:Hide()
+  owner:ClearBindings()
   local msg = self:GetAttribute("msg")
   self:SetAttribute("state", "closed")
   if not msg or msg == "" then
@@ -104,13 +159,16 @@ local ON_CLICK = [[
 ]]
 
 -- Mouse enters a node. Ring 1 = action, ring 2 = choice (idx 0 = center,
--- cancels), ring 3 = enemy count (idx 0 = center, no number).
+-- cancels), rings 3 and 4 = enemy count (idx 0 = center, no number).
 local ON_ENTER = [[
   local send = owner:GetFrameRef("send")
   local ring = self:GetAttribute("ring")
   local idx = self:GetAttribute("idx")
   if ring ~= send:GetAttribute("step") then
     return
+  end
+  if idx > 0 then
+    send:SetAttribute("backs", 0)
   end
   local a = send:GetAttribute("a")
   if ring == 1 then
@@ -129,13 +187,14 @@ local ON_ENTER = [[
     else
       send:SetAttribute("c", idx)
       send:SetAttribute("msg", send:GetAttribute("m" .. a .. "-" .. idx))
-      if send:GetAttribute("count" .. a) then
-        send:SetAttribute("step", 3)
-        local r3 = owner:GetFrameRef("r3")
+      local countRing = send:GetAttribute("count" .. a)
+      if countRing then
+        send:SetAttribute("step", countRing)
+        local rc = owner:GetFrameRef("r" .. countRing)
         owner:GetFrameRef("r2"):Hide()
-        r3:ClearAllPoints()
-        r3:SetPoint("CENTER", self, "CENTER")
-        r3:Show()
+        rc:ClearAllPoints()
+        rc:SetPoint("CENTER", self, "CENTER")
+        rc:Show()
       end
     end
   else
@@ -284,17 +343,17 @@ function W:Build()
   send:SetAttribute("prefix", "/bg")
   send:Hide()
 
-  local rings = { makeRing(root, 1), makeRing(root, 2), makeRing(root, 3) }
+  local rings = { makeRing(root, 1), makeRing(root, 2), makeRing(root, 3), makeRing(root, 4) }
 
   -- Message table, as attributes the secure snippets can read.
   for a, action in ipairs(ns.ACTIONS) do
     send:SetAttribute("preset-" .. action.key, a)
-    if action.count then send:SetAttribute("count" .. a, true) end
+    if action.countRing then send:SetAttribute("count" .. a, action.countRing) end
     for c, choice in ipairs(action.choices) do
       send:SetAttribute("m" .. a .. "-" .. c, choice.msg)
-      if action.count then
-        for k, count in ipairs(ns.COUNTS) do
-          send:SetAttribute("m" .. a .. "-" .. c .. "-" .. k, ns.CountMessage(choice.msg, count))
+      if action.countRing then
+        for k, msg in ipairs(ns.CountMessages(action, choice)) do
+          send:SetAttribute("m" .. a .. "-" .. c .. "-" .. k, msg)
         end
       end
     end
@@ -306,6 +365,7 @@ function W:Build()
   header:SetFrameRef("r1", rings[1])
   header:SetFrameRef("r2", rings[2])
   header:SetFrameRef("r3", rings[3])
+  header:SetFrameRef("r4", rings[4])
 
   header:WrapScript(send, "OnClick", ON_CLICK)
   for _, ring in ipairs(rings) do
@@ -313,15 +373,19 @@ function W:Build()
     if ring.center then header:WrapScript(ring.center, "OnEnter", ON_ENTER) end
   end
 
-  -- Static visuals: actions on ring 1, counts on ring 3.
+  -- Static visuals: actions on ring 1, counts on rings 3 and 4.
   for a, action in ipairs(ns.ACTIONS) do
     local node = rings[1].nodes[a]
     node.icon:SetTexture(ns.IconPath(action.icon))
     node.label:SetText(action.label)
   end
-  for k, count in ipairs(ns.COUNTS) do
-    rings[3].nodes[k].big:SetText(count)
-    rings[3].nodes[k].icon:Hide()
+  for r = 3, 4 do
+    for k, count in ipairs(ns.COUNTS[r]) do
+      local node = rings[r].nodes[k]
+      node.big:SetText(count)
+      if #count > 2 then node.big:SetFont(STANDARD_TEXT_FONT, 15, "") end
+      node.icon:Hide()
+    end
   end
 
   -- Lights the sector the cursor points at, before it reaches the icon.
@@ -369,7 +433,8 @@ end
 function W:Paint()
   local send = self.send
   local step = send:GetAttribute("step") or 1
-  local selected = { 0, send:GetAttribute("c") or 0, send:GetAttribute("k") or 0 }
+  local k = send:GetAttribute("k") or 0
+  local selected = { 0, send:GetAttribute("c") or 0, k, k }
   for r, ring in ipairs(self.rings) do
     local aim = (r == step) and self.aim or 0
     for i, fill in ipairs(ring.fills) do
@@ -461,9 +526,10 @@ function W:Refresh()
     setIcon(self.rings[2].center, action)
   end
 
-  -- Ring 3 center shows the place locked in by step 2.
+  -- Count ring centers show the place locked in by step 2.
   if action and c > 0 then
     setIcon(self.rings[3].center, action.choices[c])
+    setIcon(self.rings[4].center, action.choices[c])
   end
 
   self:Paint()

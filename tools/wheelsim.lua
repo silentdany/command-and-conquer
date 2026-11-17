@@ -85,6 +85,8 @@ function GetCursorPosition() return cursorX, cursorY end
 function Frame:GetHeight() return 1080 end
 local mouseX, mouseY = 500, 400
 function Frame:GetMousePosition() return mouseX / 1920, mouseY / 1080 end
+function Frame:SetBindingClick(_, key, btn, mb) overrides[key] = { btn = btn, mb = mb, owner = self } end
+function Frame:ClearBindings() for k, o in pairs(overrides) do if o.owner == self then overrides[k] = nil end end end
 function Frame:WrapScript(frame, script, pre)
   frame.wraps[script] = { header = self, pre = pre }
 end
@@ -131,90 +133,114 @@ local function enter(node)
 end
 -- Move the mouse onto a node: emulate OnEnter for visible node under cursor.
 local function moveTo(node) enter(node) end
-local r1, r2, r3 = W.rings[1], W.rings[2], W.rings[3]
+local r1, r2, r3, r4 = W.rings[1], W.rings[2], W.rings[3], W.rings[4]
+-- Indices: actions 1 DEF, 2 FLAG, 3 EFC, 4 ATTACK, 5 SCOUT, 6 INC.
+-- Places: 1 FR, 2 ROOF, 3 RAMP, 4 TUN, 5 GY, 6 MID (or action specific).
+local function last() return sent[#sent] end
 
 print("== 1. DEF > Roof, release")
 looking = true
 press("BUTTON4", true)
 assert(W.root:IsShown() and r1:IsShown() and not r2:IsShown())
-moveTo(r1.nodes[1])           -- DEF (N)
-assert(r2:IsShown() and not r1:IsShown())
-moveTo(r2.nodes[2])           -- Roof (NE)
+assert(overrides["BUTTON2"], "right click not bound while open")
+moveTo(r1.nodes[1]); assert(r2:IsShown() and not r1:IsShown())
+moveTo(r2.nodes[2])
 print("  preview:", W.preview.text.t)
 press("BUTTON4", false)
-assert(sent[#sent] == "/bg Defend our roof")
-assert(not W.root:IsShown())
+assert(last() == "/bg Defend our roof", last())
+assert(not W.root:IsShown() and not overrides["BUTTON2"])
 
-print("== 2. INC > Tunnel > 3, release")
-press("BUTTON4", true)
-moveTo(r1.nodes[5])           -- INC (NW)
-moveTo(r2.nodes[5])           -- Tunnel (S)
+print("== 2. INC > Tunnel > 3")
+press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[4])
 assert(r3:IsShown() and not r2:IsShown())
-moveTo(r3.nodes[3])           -- 3
-press("BUTTON4", false)
-assert(sent[#sent] == "/bg 3 incoming at our tunnel", sent[#sent])
+moveTo(r3.nodes[3]); press("BUTTON4", false)
+assert(last() == "/bg 3 incoming at our tunnel", last())
 
 print("== 3. INC > Ramp, release without count")
-press("BUTTON4", true)
-moveTo(r1.nodes[5]); moveTo(r2.nodes[3])
-press("BUTTON4", false)
-assert(sent[#sent] == "/bg Incoming at our ramp")
+press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[3]); press("BUTTON4", false)
+assert(last() == "/bg Incoming at our ramp", last())
 
 print("== 4. Back to center = cancel")
 local n = #sent
-press("BUTTON4", true)
-moveTo(r1.nodes[2]); moveTo(r2.nodes[4]); moveTo(r2.center)
-press("BUTTON4", false)
-assert(#sent == n, "cancel sent something")
-
-print("== 5. Release at step 1 = nothing")
-press("BUTTON4", true); press("BUTTON4", false)
+press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[4]); moveTo(r2.center); press("BUTTON4", false)
 assert(#sent == n)
 
-print("== 6. Direct INC binding (SHIFT-BUTTON4) > GY side > 5+")
-press("SHIFT-BUTTON4", true)
-assert(r2:IsShown() and not r1:IsShown())
-moveTo(r2.nodes[7]); moveTo(r3.nodes[5])
-press("SHIFT-BUTTON4", false)
-assert(sent[#sent] == "/bg 5+ incoming at our GY side", sent[#sent])
+print("== 5. Release at step 1 = nothing")
+press("BUTTON4", true); press("BUTTON4", false); assert(#sent == n)
 
-print("== 7. Change mind inside step 2: Ramp then Tunnel (EFC)")
-press("BUTTON4", true)
-moveTo(r1.nodes[3]); moveTo(r2.nodes[3]); moveTo(r2.nodes[5])
-press("BUTTON4", false)
-assert(sent[#sent] == "/bg Enemy carrier at our tunnel (EFC)")
+print("== 6. Direct INC key > GY > 5+")
+press("SHIFT-BUTTON4", true); assert(r2:IsShown() and not r1:IsShown())
+moveTo(r2.nodes[5]); moveTo(r3.nodes[5]); press("SHIFT-BUTTON4", false)
+assert(last() == "/bg 5+ incoming at our GY side", last())
 
-print("== 8. Outside a BG: practice whisper (automatic)")
+print("== 7. SCOUT > EFR > 3, CLEAR, 1, no number")
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1])
+assert(r4:IsShown() and not r3:IsShown())
+moveTo(r4.nodes[4]); press("BUTTON4", false)
+assert(last() == "/bg 3 enemies in their flag room", last())
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[1]); moveTo(r4.nodes[1]); press("BUTTON4", false)
+assert(last() == "/bg Their flag room is clear", last())
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[6]); moveTo(r4.nodes[2]); press("BUTTON4", false)
+assert(last() == "/bg 1 enemy at mid", last())
+press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[2]); moveTo(r4.center); press("BUTTON4", false)
+assert(last() == "/bg Enemies on their roof", last())
+
+print("== 8. Right click: back from count to places, pick another place")
+press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[4])
+assert(r3:IsShown())
+press("BUTTON2", true); press("BUTTON2", false)
+assert(r2:IsShown() and not r3:IsShown() and W.root:IsShown())
+moveTo(r2.center)                 -- cursor lands in the dead center
+moveTo(r2.nodes[3]); press("BUTTON4", false)
+assert(last() == "/bg Incoming at our ramp", last())
+
+print("== 9. Right click: back from places to actions, then another action")
+press("BUTTON4", true); moveTo(r1.nodes[1]); moveTo(r2.nodes[1])
+press("BUTTON2", true)
+assert(r1:IsShown() and not r2:IsShown())
+moveTo(r1.nodes[3]); moveTo(r2.nodes[6]); press("BUTTON4", false)
+assert(last() == "/bg Enemy carrier at mid", last())
+
+print("== 10. Double right click closes, release sends nothing")
+n = #sent
+press("BUTTON4", true); moveTo(r1.nodes[4]); moveTo(r2.nodes[2])
+press("BUTTON2", true) -- no pick in between
+press("BUTTON2", true)
+assert(not W.root:IsShown() and not overrides["BUTTON2"])
+press("BUTTON4", false); assert(#sent == n)
+
+print("== 11. Double right click from the count ring closes too")
+press("BUTTON4", true); moveTo(r1.nodes[6]); moveTo(r2.nodes[1]); moveTo(r3.nodes[2])
+press("BUTTON2", true); moveTo(r2.center); press("BUTTON2", true)
+assert(not W.root:IsShown())
+press("BUTTON4", false); assert(#sent == n)
+
+print("== 12. Right click at step 1 closes")
+press("BUTTON4", true); press("BUTTON2", true); assert(not W.root:IsShown()); press("BUTTON4", false)
+
+print("== 13. Outside a BG: practice whisper (automatic)")
 inBG = false
 events.scripts.OnEvent(events, "ZONE_CHANGED_NEW_AREA")
 press("BUTTON4", true); moveTo(r1.nodes[2]); moveTo(r2.nodes[1]); press("BUTTON4", false)
-assert(sent[#sent] == "/w Elemente-Venera I have their flag, escort me", sent[#sent])
+assert(last() == "/w Elemente-Venera I have their flag, escort me", last())
+inBG = true
+events.scripts.OnEvent(events, "PLAYER_ENTERING_WORLD")
 
-print("== 9. Every message fits a macro (255)")
+print("== 14. Every message fits a macro (255) and every slot has a message")
+for a = 1, 6 do for c = 1, 6 do assert(send.attrs["m" .. a .. "-" .. c], a .. "-" .. c) end end
 for k, v in pairs(send.attrs) do
   if type(k) == "string" and k:match("^m%d") then assert(#v + 30 < 255) end
 end
-print("== 10. Back in a BG: /bg again. INC > Roof > 4 then back to center = no number")
-inBG = true
-events.scripts.OnEvent(events, "PLAYER_ENTERING_WORLD")
-press("BUTTON4", true); moveTo(r1.nodes[5]); moveTo(r2.nodes[2])
 
-moveTo(r3.nodes[4]); moveTo(r3.center)
-press("BUTTON4", false)
-assert(sent[#sent] == "/bg Incoming on our roof", sent[#sent])
+print("== 15. /cnc scale")
+SlashCmdList.COMMANDANDCONQUER("scale 1.4"); assert(CnCDB.scale == 1.4)
+SlashCmdList.COMMANDANDCONQUER("scale 9"); assert(CnCDB.scale == 1.4)
 
-print("== 11. /cnc scale")
-SlashCmdList.COMMANDANDCONQUER("scale 1.4")
-assert(CnCDB.scale == 1.4)
-SlashCmdList.COMMANDANDCONQUER("scale 9")
-assert(CnCDB.scale == 1.4)
-print("== 12. Aim highlight follows the cursor angle")
+print("== 16. Aim highlight follows the cursor angle")
 press("BUTTON4", true)
-cursorX, cursorY = 500 + 80, 400   -- east of the center -> FLAG (sector 2 of 5)
-W:UpdateAim()
-assert(W.aim == 2, "aim " .. tostring(W.aim))
-cursorX, cursorY = 500, 400 + 20   -- inside the hollow center -> nothing
-W:UpdateAim()
-assert(W.aim == 0)
+cursorX, cursorY = 500 + 80, 400 + 46   -- 60 degrees: top right sector (FLAG)
+W:UpdateAim(); assert(W.aim == 2, "aim " .. tostring(W.aim))
+cursorX, cursorY = 500, 400 + 20        -- hollow center
+W:UpdateAim(); assert(W.aim == 0)
 press("BUTTON4", false)
 print("ALL OK, sent " .. #sent .. " messages")
