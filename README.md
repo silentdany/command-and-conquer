@@ -30,7 +30,10 @@ La roue utilise donc un bouton sécurisé : tout le choix (action, lieu, nombre)
 
 ## Installer
 
-Copier le dossier `CommandAndConquer` dans `Interface/AddOns/` du client Forever, puis :
+Copier le dossier `CommandAndConquer` dans `Interface/AddOns/` du client Forever.
+Mises à jour (Windows) : copier `tools/update-cnc.bat` dans `Interface/AddOns/` et le double-cliquer à chaque nouvelle version, puis `/reload` en jeu.
+
+Ensuite :
 
 1. Échap > Raccourcis > AddOns > Command & Conquer : lier « Call wheel » à une touche (un bouton latéral de souris est idéal).
 2. `/cnc test` : mode test, les calls te sont chuchotés au lieu de partir en /bg. Refaire `/cnc test` pour revenir en /bg.
@@ -43,6 +46,7 @@ Copier le dossier `CommandAndConquer` dans `Interface/AddOns/` du client Forever
 |---|---|
 | `CommandAndConquer/` | L'add-on |
 | `probe/CnCProbe/` | Add-on de test : qu'est-ce qu'un add-on a le droit d'envoyer, et où |
+| `tools/update-cnc.bat` | Mise à jour en un double-clic depuis GitHub (Windows), à placer dans `Interface/AddOns/` |
 | `tools/wheelsim.lua` | Test hors jeu de la roue (émule l'API WoW et le code sécurisé) : `lua5.1 tools/wheelsim.lua CommandAndConquer` |
 | `docs/` | Carte des messages validée |
 
