@@ -8,7 +8,7 @@ Tout l'add-on est en anglais pour le moment.
 1. Appuyer sur la touche de la roue et la garder enfoncée : la roue s'ouvre sous le curseur.
 2. Glisser vers une action : DEF, FLAG, EFC, ATTACK, SCOUT, INC.
 3. Glisser vers un choix (6 par action).
-4. INC et SCOUT : glisser vers le nombre d'ennemis (INC : 1 à 5+ ; SCOUT : CLEAR, 1 à 5+), ou relâcher pour envoyer sans nombre.
+4. INC, SCOUT et EFC : en option, glisser vers le nombre d'ennemis (INC : 1 à 5+ ; SCOUT : CLEAR, 1 à 5+ ; EFC : escorteurs du porteur, ALONE, 1 à 5+), ou relâcher pour envoyer sans nombre.
 5. Relâcher la touche : le message part en /bg. Revenir au centre avant de relâcher = rien n'est envoyé.
 
 Clic droit = une étape en arrière ; deux clics droits de suite = fermer la roue.

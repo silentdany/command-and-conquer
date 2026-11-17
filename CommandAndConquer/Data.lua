@@ -11,11 +11,13 @@
 --   top = flag room, top right = roof, bottom right = ramp,
 --   bottom = tunnel, bottom left = GY side, top left = mid
 -- Non-place options take the slot of the least useful place for that action.
--- Step 3 (INC and SCOUT): number of enemies, clockwise from the top.
+-- Step 3 (optional, INC, SCOUT, EFC): number of enemies, clockwise from
+-- the top. Releasing before picking a number sends the message without it.
 --
 -- icon = file in Media/icons (game-icons.net, see CREDITS.md).
 -- enemy = true draws the icon red: a place on their side.
--- countRing = which secure ring shows the counts (3: 1..5+, 4: CLEAR..5+).
+-- countRing = which secure ring shows the counts (3: 5 sectors, 4: 6 sectors);
+-- counts = the labels on that ring for this action.
 
 local _, ns = ...
 
@@ -44,6 +46,7 @@ ns.ACTIONS = {
   },
   {
     key = "EFC", label = "EFC", icon = "efc",
+    countRing = 4, counts = { "ALONE", "1", "2", "3", "4", "5+" }, -- escorts (17/11/2026)
     choices = {
       { label = "EFR", icon = "flag", enemy = true, msg = "Enemy carrier in their flag room" },
       { label = "E-ROOF", icon = "roof", enemy = true, msg = "Enemy carrier on their roof" },
@@ -66,7 +69,7 @@ ns.ACTIONS = {
   },
   {
     key = "SCOUT", label = "SCOUT", icon = "scout",
-    countRing = 4,
+    countRing = 4, counts = { "CLEAR", "1", "2", "3", "4", "5+" },
     -- Their side as seen by a scout (added 17/11/2026).
     choices = {
       { label = "EFR", icon = "flag", enemy = true, where = "in their flag room", place = "Their flag room" },
@@ -79,7 +82,7 @@ ns.ACTIONS = {
   },
   {
     key = "INC", label = "INC", icon = "inc",
-    countRing = 3,
+    countRing = 3, counts = { "1", "2", "3", "4", "5+" },
     choices = {
       { label = "FR", icon = "flag", msg = "Incoming in our flag room" },
       { label = "ROOF", icon = "roof", msg = "Incoming on our roof" },
@@ -96,22 +99,25 @@ for _, choice in ipairs(ns.ACTIONS[5].choices) do
   choice.msg = "Enemies " .. choice.where
 end
 
--- Count labels per count ring.
-ns.COUNTS = {
-  [3] = { "1", "2", "3", "4", "5+" },
-  [4] = { "CLEAR", "1", "2", "3", "4", "5+" },
-}
-
 -- Binding name -> action index for the direct bindings (skip step 1).
 ns.DIRECT = { CNC_DEF = 1, CNC_FLAG = 2, CNC_EFC = 3, CNC_ATTACK = 4, CNC_SCOUT = 5, CNC_INC = 6 }
 
 -- Messages for each count of a choice, in count ring order.
 --   INC:   "Incoming at our tunnel" + "3" -> "3 incoming at our tunnel"
 --   SCOUT: "3 enemies in their flag room", "1 enemy ...", "Their flag room is clear"
+--   EFC:   "Enemy carrier at our ramp with 3 escorts", "..., alone"
 function ns.CountMessages(action, choice)
   local list = {}
-  for k, count in ipairs(ns.COUNTS[action.countRing]) do
-    if action.key == "SCOUT" then
+  for k, count in ipairs(action.counts) do
+    if action.key == "EFC" then
+      if count == "ALONE" then
+        list[k] = choice.msg .. ", alone"
+      elseif count == "1" then
+        list[k] = choice.msg .. " with 1 escort"
+      else
+        list[k] = choice.msg .. " with " .. count .. " escorts"
+      end
+    elseif action.key == "SCOUT" then
       if count == "CLEAR" then
         list[k] = choice.place .. " is clear"
       elseif count == "1" then

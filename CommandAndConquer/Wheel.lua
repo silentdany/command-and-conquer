@@ -373,19 +373,15 @@ function W:Build()
     if ring.center then header:WrapScript(ring.center, "OnEnter", ON_ENTER) end
   end
 
-  -- Static visuals: actions on ring 1, counts on rings 3 and 4.
+  -- Static visuals: actions on ring 1. Count labels depend on the action
+  -- (see Refresh).
   for a, action in ipairs(ns.ACTIONS) do
     local node = rings[1].nodes[a]
     node.icon:SetTexture(ns.IconPath(action.icon))
     node.label:SetText(action.label)
   end
   for r = 3, 4 do
-    for k, count in ipairs(ns.COUNTS[r]) do
-      local node = rings[r].nodes[k]
-      node.big:SetText(count)
-      if #count > 2 then node.big:SetFont(STANDARD_TEXT_FONT, 15, "") end
-      node.icon:Hide()
-    end
+    for _, node in ipairs(rings[r].nodes) do node.icon:Hide() end
   end
 
   -- Lights the sector the cursor points at, before it reaches the icon.
@@ -524,6 +520,13 @@ function W:Refresh()
       node.label:SetText(choice.label)
     end
     setIcon(self.rings[2].center, action)
+    if action.countRing then
+      for k, node in ipairs(self.rings[action.countRing].nodes) do
+        local count = action.counts[k]
+        node.big:SetText(count)
+        node.big:SetFont(STANDARD_TEXT_FONT, #count > 2 and 15 or 24, "")
+      end
+    end
   end
 
   -- Count ring centers show the place locked in by step 2.
