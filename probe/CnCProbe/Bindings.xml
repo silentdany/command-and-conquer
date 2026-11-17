@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="CNCPROBE_SEND" header="CNCPROBE" runOnUp="true">
+    CnCProbe_OnBinding(keystate)
+  </Binding>
+</Bindings>
