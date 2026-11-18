@@ -128,6 +128,18 @@ end
 
 local function verdict(list)
   local ok = counts(list)
+  local first = list[1] and list[1].trigger or ""
+  if first:find("^alerte") then
+    local rec = list[1]
+    if rec.status:find("UNREADABLE") then
+      return "Alerte envoyée, mais son contenu est illisible pour les add-ons : pas d'alerte à l'écran possible."
+    elseif ok[first] then
+      return first == "alerte directe"
+        and "Alertes OK : l'add-on peut les envoyer lui-même. Vérifie qu'un allié équipé les reçoit."
+        or "Alertes OK par la macro du relâchement. Vérifie qu'un allié équipé les reçoit."
+    end
+    return "Alerte non reçue en retour : bloquée ou pas transmise sur ce canal."
+  end
   if ok.onupdate or ok.timer then
     return "OK : la roue peut envoyer dès le glissé, sans clic ni relâchement."
   elseif ok.slash or ok.binding then
@@ -277,6 +289,58 @@ local function pingInfo()
   out("Commande /ping : %s", #slash > 0 and table.concat(slash, " ") or "introuvable")
   local key = GetBindingKey and GetBindingKey("TOGGLEPINGLISTENER")
   out("Touche de ping Blizzard : %s", key or "non liée ou absente")
+end
+
+local alertButton
+local function alertChannel()
+  local ctx = context()
+  if ctx.instanceGroup then return "INSTANCE_CHAT" end
+  if ctx.homeGroup then return "PARTY" end
+  return "WHISPER", playerName()
+end
+
+local function sendAlertDirect()
+  local channel, target = alertChannel()
+  local rec = track("alerte directe", channel, ECHO_TIMEOUT)
+  rec.kind = "addon"
+  lastRecord = rec
+  local ok, ret = pcall(sendAddon, ("ALERT|#%s|Enemy carrier at the tunnel (test)"):format(rec.nonce), channel, target)
+  rec.callReturn = tostring(ret)
+  if not ok then
+    rec.status = "LUA ERROR"
+    rec.error = tostring(ret)
+    pending[rec.nonce] = nil
+  end
+  out("Alerte envoyée par l'add-on sur %s (retour : %s). Rapport dans ~5 s.", channel, tostring(ret))
+end
+
+local function showAlertButton()
+  if InCombatLockdown() then
+    out("Hors combat seulement (le bouton se prépare avant le combat).")
+    return
+  end
+  if not alertButton then
+    local b = CreateFrame("Button", "CnCProbeAlertButton", UIParent,
+      "SecureActionButtonTemplate, UIPanelButtonTemplate")
+    b:SetSize(260, 34)
+    b:SetPoint("CENTER", UIParent, "CENTER", 0, 100)
+    b:SetText("CnC : test alerte (macro /run)")
+    b:RegisterForClicks("AnyUp", "AnyDown")
+    b:SetAttribute("type", "macro")
+    local lastAt = 0
+    b:SetScript("PreClick", function(self)
+      if InCombatLockdown() or GetTime() - lastAt < 1 then return end
+      lastAt = GetTime()
+      local channel, target = alertChannel()
+      local rec = track("alerte macro", channel, ECHO_TIMEOUT)
+      rec.kind = "addon"
+      local targetArg = target and (", '" .. target .. "'") or ""
+      self:SetAttribute("macrotext", ("/run C_ChatInfo.SendAddonMessage('%s', 'ALERT|#%s|Incoming at our ramp (test)', '%s'%s)")
+        :format(ADDON_MSG_PREFIX, rec.nonce, channel, targetArg))
+    end)
+    alertButton = b
+  end
+  alertButton:Show()
 end
 
 local function showPingButton()
@@ -480,7 +544,53 @@ local function onSystem(msg)
   end
 end
 
+-- Add-on to add-on alerts (/cnct alert). Payload "ALERT|#nonce|text".
+-- Received alerts (ours and other players' with CnCProbe) show in big on
+-- screen, the way Command & Conquer would show calls.
+local alertFrame
+local function showAlert(text, sender)
+  if not alertFrame then
+    alertFrame = CreateFrame("Frame", nil, UIParent)
+    alertFrame:SetSize(1, 1)
+    alertFrame:SetPoint("TOP", UIParent, "TOP", 0, -170)
+    alertFrame:SetFrameStrata("HIGH")
+    alertFrame.text = alertFrame:CreateFontString(nil, "OVERLAY")
+    alertFrame.text:SetFont(STANDARD_TEXT_FONT, 26, "OUTLINE")
+    alertFrame.text:SetPoint("TOP")
+    alertFrame.text:SetTextColor(1, 0.82, 0.2)
+    alertFrame:SetScript("OnUpdate", function(f, elapsed)
+      f.left = f.left - elapsed
+      if f.left <= 0 then f:Hide() else f:SetAlpha(math.min(1, f.left)) end
+    end)
+  end
+  alertFrame.text:SetText(text .. "\n|cffbbbbbb" .. tostring(sender) .. "|r")
+  alertFrame.left = 4
+  alertFrame:SetAlpha(1)
+  alertFrame:Show()
+  if SOUNDKIT and SOUNDKIT.RAID_WARNING then pcall(PlaySound, SOUNDKIT.RAID_WARNING) end
+end
+
+-- Returns true when the add-on message was an alert (handled here).
+local function onAlert(prefix, text, channel, sender)
+  local ok, isAlert, body = pcall(function()
+    if prefix ~= ADDON_MSG_PREFIX then return false end
+    local b = text:match("^ALERT|#%d+|(.*)$")
+    return b ~= nil, b
+  end)
+  if not ok then
+    out("Message add-on reçu mais |cffff7f7fillisible|r (valeur secrète) sur %s.", tostring(channel))
+    return false
+  end
+  if not isAlert then return false end
+  local okS, who = pcall(function() return sender .. "" end)
+  who = okS and who or "?"
+  out("Alerte reçue de %s sur %s : %s", who, tostring(channel), body)
+  showAlert(body, who)
+  return false -- let onChat match the nonce for our own echo
+end
+
 local function onChat(event, ...)
+  if event == "CHAT_MSG_ADDON" then onAlert(...) end
   if not next(pending) then return end
   if event == "CHAT_MSG_SYSTEM" then return onSystem((...)) end
   local kind = (event == "CHAT_MSG_ADDON") and "addon" or "chat"
@@ -535,6 +645,7 @@ local function help()
   out("/cnct secure : bouton de test « macro /bg » à cliquer (hors combat)")
   out("/cnct ping : système de ping présent ? + bouton de test « /ping » (hors combat)")
   out("/cnct map : position sur la carte, ping minicarte, repère de carte partageable")
+  out("/cnct alert : alerte add-on à add-on (envoi direct + bouton macro), affichage en gros à l'écran")
   out("/cnct editbox : pré-remplit une ligne /bg, à envoyer avec Entrée")
   out("/cnct report : réaffiche le dernier rapport")
   out("/cnct clear : vide l'historique sauvegardé")
@@ -553,6 +664,11 @@ SlashCmdList.CNCPROBE = function(input)
     local rec = track("editbox", "editbox /bg", 30)
     openChat(("/bg CnC editbox test #%s, please ignore"):format(rec.nonce))
     out("Ligne pré-remplie : tape Entrée dans les 30 s.")
+  elseif cmd == "alert" then
+    sendAlertDirect()
+    showAlertButton()
+    out("Ensuite, clique le bouton « test alerte » (hors combat) pour l'envoi par macro.")
+    out("Un allié avec CnCProbe voit tes alertes en gros à l'écran, et toi les siennes.")
   elseif cmd == "map" then
     mapInfo()
   elseif cmd == "ping" then
@@ -564,6 +680,7 @@ SlashCmdList.CNCPROBE = function(input)
     if not InCombatLockdown() then
       if secureButton then secureButton:Hide() end
       if pingButton then pingButton:Hide() end
+      if alertButton then alertButton:Hide() end
     end
   elseif cmd == "report" then
     report()

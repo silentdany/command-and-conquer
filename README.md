@@ -40,7 +40,7 @@ Un même lieu garde la même direction dans toutes les actions, pour que la main
 | Bas gauche | Côté GY |
 | Haut gauche | Mid |
 
-Les options qui ne sont pas des lieux prennent la place du lieu le moins utile pour l'action (ESCORT pour DEF, ZERG pour ATTACK, HELP et CAP! pour FLAG).
+Les options qui ne sont pas des lieux prennent la place du lieu le moins utile pour l'action (ESCORT pour DEF, ZERG pour ATTACK, HELP, TAKE et CAP! pour FLAG).
 Des touches directes (INC, SCOUT, EFC, FLAG, DEF, ATTACK) sautent l'étape 1.
 
 Carte actuelle des messages : [CommandAndConquer/Data.lua](CommandAndConquer/Data.lua). Les messages sont en anglais simple, sans jargon (pas de EFC, EFR, GY, zerg…) ; le jargon court reste seulement sur les libellés de la roue. Base de départ validée : [docs/mapping-roue-v3.md](docs/mapping-roue-v3.md) (8 choix, réduite à 6 le 17/11/2026).
@@ -80,6 +80,7 @@ Ensuite :
 |---|---|
 | `CommandAndConquer/` | L'add-on |
 | `probe/CnCProbe/` | Add-on de test : qu'est-ce qu'un add-on a le droit d'envoyer, et où |
+| `.github/workflows/test.yml` | Tests automatiques à chaque push : syntaxe Lua, fichiers des `.toc`, icônes, simulation de la roue |
 | `tools/update-cnc.bat` | Mise à jour en un double-clic depuis GitHub (Windows), à placer dans `Interface/AddOns/` |
 | `tools/wheelsim.lua` | Test hors jeu de la roue (émule l'API WoW et le code sécurisé) : `lua5.1 tools/wheelsim.lua CommandAndConquer` |
 | `tools/make_media.py` | Génère les textures de la roue et les icônes (game-icons.net, CC BY 3.0, voir `CommandAndConquer/CREDITS.md`) |

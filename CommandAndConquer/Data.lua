@@ -61,7 +61,8 @@ ns.ACTIONS = {
       { label = "HELP", icon = "help", msg = "Our flag carrier needs help", ping = PING_FRIEND_ASSIST },
       { label = "RAMP", icon = "ramp", msg = "Our flag carrier going ramp" },
       { label = "TUN", icon = "tunnel", msg = "Our flag carrier going tunnel" },
-      { label = "GY", icon = "gy", msg = "Our flag carrier going graveyard side" },
+      -- TAKE replaced the carrier's graveyard route (least used), 18/11/2026.
+      { label = "TAKE", icon = "take", msg = "Take their flag" },
       { label = "CAP!", icon = "cap", msg = "Our flag is home, cap now" },
     },
   },

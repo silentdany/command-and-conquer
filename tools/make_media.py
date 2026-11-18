@@ -44,6 +44,7 @@ ICONS = {
     "inc": "hazard-sign",
     "scout": "spyglass",
     "cancel": "cancel",
+    "take": "grab",
     "roof": "house",
     "ramp": "stairs",
     "tunnel": "dungeon-gate",

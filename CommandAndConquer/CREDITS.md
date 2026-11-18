@@ -14,6 +14,7 @@ They were converted to white 64x64 TGA files by `tools/make_media.py`.
 | `inc.tga` | hazard-sign |
 | `scout.tga` | spyglass |
 | `cancel.tga` | cancel |
+| `take.tga` | grab |
 | `roof.tga` | house |
 | `ramp.tga` | stairs |
 | `tunnel.tga` | dungeon-gate |

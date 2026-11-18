@@ -1,0 +1,40 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua 5.1 (WoW's Lua version)
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+
+      - name: Syntax check (add-on and test add-on)
+        run: |
+          for f in CommandAndConquer/*.lua probe/CnCProbe/*.lua tools/*.lua; do
+            luac5.1 -p "$f"
+            echo "ok $f"
+          done
+
+      - name: TOC lists existing files only
+        run: |
+          for toc in CommandAndConquer/CommandAndConquer.toc probe/CnCProbe/CnCProbe.toc; do
+            dir=$(dirname "$toc")
+            grep -v '^#' "$toc" | grep -v '^\s*$' | while read -r f; do
+              f=$(echo "$f" | tr -d '\r')
+              test -f "$dir/$f" || { echo "missing $dir/$f"; exit 1; }
+            done
+          done
+
+      - name: Every icon used by Data.lua exists
+        run: |
+          for icon in $(grep -o 'icon = "[a-z]*"' CommandAndConquer/Data.lua | sed 's/icon = "//;s/"//' | sort -u) cancel; do
+            test -f "CommandAndConquer/Media/icons/$icon.tga" || { echo "missing icon $icon"; exit 1; }
+          done
+
+      - name: Wheel simulation (WoW API and secure snippets emulated)
+        run: lua5.1 tools/wheelsim.lua CommandAndConquer
