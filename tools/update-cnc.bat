@@ -11,7 +11,7 @@ if /I not "%DIRNAME%"=="AddOns" (
   pause
   exit /b 1
 )
-set "BRANCH=ccr-68b5b91f-h12h49"
+set "BRANCH=main"
 set "URL=https://github.com/silentdany/command-and-conquer/archive/refs/heads/%BRANCH%.zip"
 set "TMPZIP=%TEMP%\cnc-update.zip"
 set "TMPDIR=%TEMP%\cnc-update"
