@@ -53,7 +53,5 @@ jobs:
           npm ci --prefix web
           node tools/websim-check.mjs
 
-      - name: Training page builds
-        run: |
-          pip install pillow
-          node tools/build-web.mjs
+      - name: Web site builds (landing and training ground)
+        run: node tools/build-web.mjs

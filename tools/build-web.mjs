@@ -1,19 +1,24 @@
-// Builds the training web page into _site/ (or the folder given):
+// Builds the web site into _site/ (or the folder given):
 //   npm ci --prefix web && node tools/build-web.mjs
-// The page runs the add-on's real Lua files, copied here in TOC order, on
-// the shared WoW emulation, with the add-on's textures exported to PNG.
-// GitHub Actions runs this on every push (.github/workflows/pages.yml).
+//   /                   landing page of the add-on (web/landing/)
+//   /training-ground/   training page (web/): runs the add-on's real Lua
+//                       files, copied here in TOC order, on the shared WoW
+//                       emulation, with the add-on's textures as PNG.
+// Node only (no Python), so Vercel builds it on every push (vercel.json).
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { execSync, spawnSync } from "node:child_process";
+import { execSync } from "node:child_process";
+import { decodeTga, encodePng } from "./tga2png.mjs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const out = join(root, process.argv[2] || "_site");
+const site = join(root, process.argv[2] || "_site");
+const out = join(site, "training-ground");
 const addon = join(root, "CommandAndConquer");
 
-rmSync(out, { recursive: true, force: true });
+rmSync(site, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
+cpSync(join(root, "web/landing"), site, { recursive: true });
 
 for (const f of ["index.html", "style.css", "app.js", "scene.js", "glue.lua", "situations.txt"]) {
   cpSync(join(root, "web", f), join(out, f));
@@ -37,22 +42,26 @@ const wasmoon = join(root, "web/node_modules/wasmoon/dist");
 mkdirSync(join(out, "vendor/wasmoon"), { recursive: true });
 for (const f of ["index.js", "glue.wasm"]) cpSync(join(wasmoon, f), join(out, "vendor/wasmoon", f));
 
-// Same textures and icons as the add-on, as PNG.
-const media = join(out, "media");
-const py = spawnSync("python3", [join(root, "tools/make_media.py"), "png", media], { stdio: "inherit" });
-if (py.status !== 0) throw new Error("PNG export failed (pip install pillow)");
+// Same textures and icons as the add-on, as PNG (same pixels).
 const walk = (dir) => readdirSync(dir).flatMap((n) => {
   const p = join(dir, n);
   return statSync(p).isDirectory() ? walk(p) : [p];
 });
-const pngs = walk(media).map((p) => relative(out, p).split("\\").join("/"));
+const mediaSrc = join(addon, "Media");
+const pngs = [];
+for (const tga of walk(mediaSrc).filter((p) => p.endsWith(".tga"))) {
+  const rel = relative(mediaSrc, tga).split("\\").join("/").replace(/\.tga$/, ".png");
+  const dest = join(out, "media", rel);
+  mkdirSync(dirname(dest), { recursive: true });
+  writeFileSync(dest, encodePng(decodeTga(readFileSync(tga))));
+  pngs.push(`media/${rel}`);
+}
 
 const version = (toc.match(/^## Version:\s*(.+)$/m) || [])[1]?.trim() || "?";
-let commit = (process.env.GITHUB_SHA || "").slice(0, 7);
+let commit = (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "").slice(0, 7);
 if (!commit) {
   try { commit = execSync("git rev-parse --short HEAD", { cwd: root }).toString().trim(); } catch { commit = "local"; }
 }
 const build = { version, commit, date: new Date().toISOString().slice(0, 10), lua, media: pngs };
 writeFileSync(join(out, "build.json"), JSON.stringify(build, null, 2));
-writeFileSync(join(out, ".nojekyll"), "");
-console.log(`site built in ${relative(root, out) || "."}: add-on v${version}, ${lua.length} Lua files, ${pngs.length} images`);
+console.log(`site built in ${relative(root, site) || "."}: add-on v${version}, ${lua.length} Lua files, ${pngs.length} images`);

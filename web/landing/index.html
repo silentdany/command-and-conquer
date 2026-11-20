@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Command &amp; Conquer — call wheel for Warsong Gulch</title>
+  <meta name="description" content="A WoW: Forever add-on for Warsong Gulch: hold a key, flick, release, and your call is in /bg. Built for pick-up groups, usable blind while carrying the flag.">
+  <meta property="og:title" content="Command &amp; Conquer — call wheel for Warsong Gulch">
+  <meta property="og:description" content="Hold a key, flick, release: your call is in /bg. Try the wheel in your browser.">
+  <meta property="og:image" content="/img/wheel-actions.png">
+  <link rel="icon" href="/training-ground/media/icons/flag.png">
+  <link rel="stylesheet" href="/landing.css">
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="/">Command <span>&amp;</span> Conquer</a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#calls">Calls</a>
+      <a href="#install">Install</a>
+      <a class="btn small" href="/training-ground/">Training ground</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-text">
+        <p class="kicker">WoW: Forever add-on · Warsong Gulch</p>
+        <h1>Make the call<br>without letting go of the fight.</h1>
+        <p class="lead">Hold a key, flick the mouse, release. Your call is in <code>/bg</code>, with a ping on the right player.
+          Built to be used blind: while running, turning the camera, or carrying the flag.</p>
+        <div class="cta">
+          <a class="btn" href="/training-ground/">Try the wheel in your browser</a>
+          <a class="btn ghost" href="#install">Install the add-on</a>
+        </div>
+        <p class="note">The training ground runs the add-on's own Lua code. What you practise is exactly what you get in game.</p>
+      </div>
+      <figure class="hero-wheel">
+        <img src="/img/wheel-actions.png" width="439" height="471" alt="The call wheel open on its first step: EFC on top, ATTACK, FC, DEF and INC around it.">
+      </figure>
+    </section>
+
+    <section id="how" class="band">
+      <h2>Three moves, under a second</h2>
+      <ol class="steps">
+        <li>
+          <span class="num">1</span>
+          <h3>Hold</h3>
+          <p>Hold your wheel key (Tab, a mouse side button…). The wheel opens under the cursor, wherever it is.</p>
+        </li>
+        <li>
+          <span class="num">2</span>
+          <h3>Flick</h3>
+          <p>Flick toward an action, then a place. A sector is picked when the cursor reaches its icon, so small jitters don't count.</p>
+        </li>
+        <li>
+          <span class="num">3</span>
+          <h3>Release</h3>
+          <p>Let go: the message leaves in <code>/bg</code>. Back to the center or onto the red cross, and nothing is sent.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section id="calls" class="split">
+      <div>
+        <h2>Built around the two flag carriers</h2>
+        <p>Five actions, always in the same place. Urgency on top, attack on the right, defence on the left.</p>
+        <ul class="actions">
+          <li><i class="ico" style="--icon:url(/training-ground/media/icons/efc.png)"></i><b>EFC</b> their carrier. Release right away to ping him.</li>
+          <li><i class="ico" style="--icon:url(/training-ground/media/icons/attack.png)"></i><b>ATTACK</b> a place on their side, with how many players.</li>
+          <li><i class="ico" style="--icon:url(/training-ground/media/icons/flag.png)"></i><b>FC</b> our carrier: escort him, where he is, or CAP.</li>
+          <li><i class="ico" style="--icon:url(/training-ground/media/icons/def.png)"></i><b>DEF</b> a place on our side, with how many players.</li>
+          <li><i class="ico" style="--icon:url(/training-ground/media/icons/inc.png)"></i><b>INC</b> enemies coming, how many, or scouted on their side.</li>
+        </ul>
+      </div>
+      <figure>
+        <img src="/img/wheel-count.png" width="439" height="471" alt="INC, tunnel, then the count ring: 1, 2, 3, 5, CANCEL, and the same place in red on top. The message preview reads: INC: 3 enemies coming at OUR TUNNEL.">
+      </figure>
+    </section>
+
+    <section class="split reverse">
+      <div>
+        <h2>Blue is ours, red is theirs</h2>
+        <p>No word to read for the side. Places keep the same spot on both sides: flag room on top, roof top right, ramp bottom right,
+          mid at the bottom, graveyard bottom left, tunnel top left. Need the other side? One big sector on top flips it.</p>
+        <h3>Messages anyone understands</h3>
+        <p>The short term veterans react to comes first, then plain English for newcomers:</p>
+        <ul class="msgs">
+          <li><code>EFC: their flag carrier is at OUR RAMP</code></li>
+          <li><code>FC: escort our carrier, THEIR TUNNEL</code></li>
+          <li><code>DEF: 3 defend OUR FLAG ROOM</code></li>
+          <li><code>ATTACK: everyone attack THEIR ROOF</code></li>
+          <li><code>INC: 3 enemies coming at OUR TUNNEL</code></li>
+          <li><code>CAP: our flag is home, cap now</code></li>
+        </ul>
+      </div>
+      <figure>
+        <img src="/img/wheel-side.png" width="439" height="471" alt="EFC, ramp, then one big red ramp sector to say their side, and CANCEL bottom left.">
+      </figure>
+    </section>
+
+    <section class="band train">
+      <h2>Practise before you queue</h2>
+      <p>The training ground throws situations at you — “their carrier runs out through our ramp”, “3 enemies in our tunnel” —
+        times your call and counts mistakes. Same keys as in game: hold Tab or Space.</p>
+      <a class="btn" href="/training-ground/">Open the training ground</a>
+    </section>
+
+    <section id="install" class="install">
+      <h2>Install</h2>
+      <ol>
+        <li>Download the <a href="https://github.com/silentdany/command-and-conquer/archive/refs/heads/ccr-68b5b91f-h12h49.zip">latest version</a> and copy the <code>CommandAndConquer</code> folder into <code>Interface/AddOns</code> of your WoW: Forever client.</li>
+        <li>In game: <kbd>Esc</kbd> › Key Bindings › AddOns › bind <b>C&amp;C: wheel</b> to a key you can hold in combat.</li>
+        <li>Outside battlegrounds, calls are whispered to you: practise freely. In Warsong Gulch they go to <code>/bg</code>.</li>
+      </ol>
+      <p class="small">Useful commands: <code>/cnc scale 1.3</code> (wheel size), <code>/cnc ping</code> (pings on or off), <code>/cnc status</code>.
+        Beta, tested on Forever 1.60.1. Why a wheel? In battlegrounds Forever blocks add-ons from writing in chat on their own;
+        a key you press yourself can. Details on <a href="https://github.com/silentdany/command-and-conquer">GitHub</a>.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Command &amp; Conquer · fan-made add-on, not affiliated with Blizzard Entertainment.</span>
+    <span>Icons: <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0).</span>
+    <a href="https://github.com/silentdany/command-and-conquer">Source on GitHub</a>
+  </footer>
+</body>
+</html>

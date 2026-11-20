@@ -42,7 +42,7 @@ Touches directes (Échap > Raccourcis > AddOns) : « EFC only », « ATTACK only
 - **Bac à sable** : roue libre, faux chat /bg, pings affichés, interrupteurs (combat, cible, options expérimentales, « je porte le drapeau »). Les commandes `/cnc` se tapent dans le chat.
 - Touches : `Tab` ou `Espace` tenu, `1` à `5` pour les touches directes.
 - Situations : [web/situations.txt](web/situations.txt), une ligne par situation, avec le call attendu en touches de la roue (`INC > TUN > 3`). Les tests vérifient que chaque situation existe encore dans la roue.
-- Publication automatique : `.github/workflows/pages.yml` reconstruit et publie la page (GitHub Pages) à chaque push. À activer une fois : Settings > Pages > Source = GitHub Actions.
+- Site : landing page de l'add-on (`web/landing/`) sur https://cnc.accura.dev, page d'entraînement sous `/training-ground/`. Vercel reconstruit et publie à chaque push (`vercel.json`, build en Node seul : `tools/tga2png.mjs` convertit les textures).
 - En local : `npm ci --prefix web && node tools/build-web.mjs && python3 -m http.server -d _site`.
 
 ## Pourquoi « relâcher pour envoyer »
@@ -84,7 +84,7 @@ Ensuite :
 | `tools/update-cnc.bat` | Mise à jour en un double-clic depuis GitHub (Windows), à placer dans `Interface/AddOns/` |
 | `tools/sim/wowemu.lua` | Émulation de l'API WoW (cadres, souris, raccourcis, code sécurisé, macros), partagée par les tests et la page |
 | `tools/wheelsim.lua` | Test hors jeu de la roue : `lua5.1 tools/wheelsim.lua` (et `node tools/websim-check.mjs` : le même test en Lua 5.4, moteur de la page) |
-| `web/`, `tools/build-web.mjs` | Page d'entraînement et sa construction |
+| `web/`, `web/landing/`, `tools/build-web.mjs`, `vercel.json` | Page d'entraînement, landing page, construction et publication (Vercel) |
 | `tools/make_media.py` | Génère les textures de la roue et les icônes (game-icons.net, CC BY 3.0, voir `CommandAndConquer/CREDITS.md`) |
 | `docs/` | Carte v3 (historique ; la carte actuelle est Data.lua) |
 

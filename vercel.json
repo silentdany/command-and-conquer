@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci --prefix web",
+  "buildCommand": "node tools/build-web.mjs _site",
+  "outputDirectory": "_site",
+  "trailingSlash": true,
+  "redirects": [
+    { "source": "/training", "destination": "/training-ground/", "permanent": false },
+    { "source": "/train", "destination": "/training-ground/", "permanent": false }
+  ],
+  "headers": [
+    {
+      "source": "/training-ground/vendor/wasmoon/glue.wasm",
+      "headers": [{ "key": "Content-Type", "value": "application/wasm" }]
+    }
+  ]
+}
