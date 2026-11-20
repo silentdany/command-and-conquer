@@ -1,6 +1,7 @@
 // Builds the web site into _site/ (or the folder given):
 //   npm ci --prefix web && node tools/build-web.mjs
 //   /                   landing page of the add-on (web/landing/)
+//   /hud/               shared interface style, font, backgrounds
 //   /training-ground/   training page (web/): runs the add-on's real Lua
 //                       files, copied here in TOC order, on the shared WoW
 //                       emulation, with the add-on's textures as PNG.
@@ -19,8 +20,10 @@ const addon = join(root, "CommandAndConquer");
 rmSync(site, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 cpSync(join(root, "web/landing"), site, { recursive: true });
+// Shared game-interface style, font and backgrounds (landing and training).
+cpSync(join(root, "web/hud"), join(site, "hud"), { recursive: true });
 
-for (const f of ["index.html", "style.css", "app.js", "scene.js", "glue.lua", "situations.txt"]) {
+for (const f of ["index.html", "style.css", "app.js", "scene.js", "hud.js", "sound.js", "glue.lua", "situations.txt"]) {
   cpSync(join(root, "web", f), join(out, f));
 }
 
