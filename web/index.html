@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Command &amp; Conquer — call wheel trainer</title>
+  <meta name="description" content="Practise your Warsong Gulch calls with the real Command &amp; Conquer add-on wheel: hold Tab, flick, release.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <strong>Command &amp; Conquer</strong>
+      <span class="sub">call wheel trainer</span>
+    </div>
+    <nav class="modes" role="tablist" aria-label="Mode">
+      <button type="button" role="tab" id="tab-train" aria-selected="true" data-mode="train">Training</button>
+      <button type="button" role="tab" id="tab-sandbox" aria-selected="false" data-mode="sandbox">Sandbox</button>
+    </nav>
+    <div class="stats" id="stats" aria-live="polite"></div>
+  </header>
+
+  <main id="game" class="game" tabindex="0" aria-label="Game screen: hold Tab or Space to open the wheel">
+    <div id="scene" class="scene" aria-hidden="true"></div>
+    <canvas id="screen"></canvas>
+
+    <section id="card" class="card" aria-live="polite">
+      <p class="card-kicker" id="card-kicker">Loading the add-on…</p>
+      <p class="card-text" id="card-text"></p>
+      <p class="card-result" id="card-result"></p>
+    </section>
+
+    <section class="chat" aria-label="Battleground chat">
+      <ol id="chat"></ol>
+      <form id="slash" class="slash" autocomplete="off">
+        <input id="slash-input" type="text" placeholder="/cnc status" aria-label="Chat command (/cnc …)">
+      </form>
+    </section>
+
+    <aside id="panel" class="panel" hidden>
+      <h2>Sandbox</h2>
+      <fieldset>
+        <legend>Situation</legend>
+        <label>Target
+          <select data-set="target">
+            <option value="none">none</option>
+            <option value="enemy" selected>enemy (Gruk)</option>
+            <option value="friend">ally (Bjorn)</option>
+          </select>
+        </label>
+        <label><input type="checkbox" data-set="bg" checked> In a battleground (/bg)</label>
+        <label><input type="checkbox" data-set="combat"> In combat</label>
+      </fieldset>
+      <fieldset>
+        <legend>Experimental <span class="hint">(/cnc exp)</span></legend>
+        <label><input type="checkbox" data-set="exp"> Experimental mode</label>
+        <label><input type="checkbox" data-set="hover" checked> Hover 0.1 s before a pick</label>
+        <label><input type="checkbox" data-set="undo" checked> Tap within 3 s: “Ignore my last call”</label>
+        <label><input type="checkbox" data-set="carriers"> Carrier portraits as units</label>
+        <label><input type="checkbox" data-set="carry"> I carry their flag</label>
+        <label><input type="checkbox" data-set="unitisunit"> Hypothesis: secure code has UnitIsUnit</label>
+        <p class="hint">Blizzard's secure environment has no UnitIsUnit, so “I have their flag” only works if Forever adds it. The report tells.</p>
+      </fieldset>
+      <p class="hint" id="panel-note"></p>
+    </aside>
+
+    <div id="help" class="help">
+      <kbd>Tab</kbd> or <kbd>Space</kbd>: hold, flick to an icon, release to send ·
+      <kbd>1</kbd>–<kbd>5</kbd>: EFC, ATTACK, FC, DEF, INC directly ·
+      <span class="train-only"><kbd>N</kbd>: next</span>
+    </div>
+    <div id="touch" class="touch" hidden>
+      This trainer needs a keyboard and a mouse, like the game.
+    </div>
+  </main>
+
+  <footer class="foot">
+    <span id="build"></span>
+    <span>The wheel on this page is the add-on's own Lua code, run in your browser.</span>
+    <a href="https://github.com/silentdany/command-and-conquer">Source</a>
+    <span>Icons: game-icons.net (CC BY 3.0)</span>
+  </footer>
+
+  <script src="vendor/wasmoon/index.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
