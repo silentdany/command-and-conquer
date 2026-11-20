@@ -616,6 +616,84 @@ local function onChat(event, ...)
   end
 end
 
+
+---------------------------------------------------------------------------
+-- Carriers: which frames and units are the two flag carrier portraits
+-- Forever shows top right in Warsong Gulch? (v0.6, 20/11/2026)
+---------------------------------------------------------------------------
+
+local CARRIER_NAME_PATTERN = { "Arena", "Flag", "Carrier", "WorldState", "Objective", "UIWidget", "Battlefield" }
+
+local function readable(v)
+  if issecretvalue and issecretvalue(v) then return "<secret>" end
+  return tostring(v)
+end
+
+local function carriersInfo()
+  local lines = {}
+  local function note(fmt, ...)
+    local text = select("#", ...) > 0 and fmt:format(...) or fmt
+    lines[#lines + 1] = text
+    out(text)
+  end
+  local ctx = context()
+  note("Porteurs : instance %s, combat %s", tostring(ctx.instanceType), tostring(ctx.inCombat))
+
+  -- 1. Units that could be the carriers.
+  local units = { "arena1", "arena2", "arena3", "arena4", "arena5", "focus", "target" }
+  for _, u in ipairs(units) do
+    if UnitExists(u) then
+      note("  unité %s : nom %s, ami %s, c'est moi %s", u, readable(UnitName(u)),
+        readable(UnitIsFriend("player", u)), readable(UnitIsUnit(u, "player")))
+    end
+  end
+
+  -- 2. Visible frames in the top right of the screen, or with a telling name.
+  local sw, sh = UIParent:GetWidth(), UIParent:GetHeight()
+  local f = EnumerateFrames()
+  local found = 0
+  while f and found < 40 do
+    pcall(function() -- forbidden or odd frames must not stop the scan
+    local name = f:GetName()
+    if f:IsVisible() then
+      local unit = (f.GetAttribute and f:GetAttribute("unit")) or f.unit
+      local x, y = f:GetCenter()
+      local topRight = x and y and x > sw * 0.6 and y > sh * 0.45
+      local telling = false
+      if name then
+        for _, pat in ipairs(CARRIER_NAME_PATTERN) do
+          if name:find(pat) then telling = true end
+        end
+      end
+      if (topRight and (unit or (name and f:IsMouseEnabled()))) or (telling and unit) then
+        found = found + 1
+        note("  cadre %s : unité %s, protégé %s, souris %s, position %d,%d", tostring(name), readable(unit),
+          tostring(f:IsProtected()), tostring(f:IsMouseEnabled()), x or -1, y or -1)
+      end
+    end
+    end)
+    f = EnumerateFrames(f)
+  end
+  if found == 0 then note("  aucun cadre trouvé en haut à droite (faire le test quand les portraits sont affichés)") end
+
+  -- 3. What the secure code of the wheel can use.
+  if not InCombatLockdown() and SecureHandlerExecute then
+    local header = CnCProbeSecureHeader or CreateFrame("Frame", "CnCProbeSecureHeader", UIParent, "SecureHandlerBaseTemplate")
+    local ok, err = pcall(SecureHandlerExecute, header, [[
+      self:SetAttribute("has-UnitIsUnit", UnitIsUnit and true or false)
+      self:SetAttribute("has-UnitExists", UnitExists and true or false)
+      self:SetAttribute("has-UnitName", UnitName and true or false)
+    ]])
+    note("  code sécurisé : UnitIsUnit %s, UnitExists %s, UnitName %s%s",
+      tostring(header:GetAttribute("has-UnitIsUnit")), tostring(header:GetAttribute("has-UnitExists")),
+      tostring(header:GetAttribute("has-UnitName")), ok and "" or (" (erreur " .. tostring(err) .. ")"))
+  end
+  if db then
+    db.carriers = { when = date("%Y-%m-%d %H:%M:%S"), lines = lines }
+  end
+  out("Résultat gardé dans les SavedVariables (CnCProbeDB.carriers). À faire en BG, portraits affichés, hors combat.")
+end
+
 ---------------------------------------------------------------------------
 -- Info
 ---------------------------------------------------------------------------
@@ -646,6 +724,7 @@ local function help()
   out("/cnct ping : système de ping présent ? + bouton de test « /ping » (hors combat)")
   out("/cnct map : position sur la carte, ping minicarte, repère de carte partageable")
   out("/cnct alert : alerte add-on à add-on (envoi direct + bouton macro), affichage en gros à l'écran")
+  out("/cnct carriers : cadres et unités des portraits des porteurs (en BG, portraits affichés)")
   out("/cnct editbox : pré-remplit une ligne /bg, à envoyer avec Entrée")
   out("/cnct report : réaffiche le dernier rapport")
   out("/cnct clear : vide l'historique sauvegardé")
@@ -671,6 +750,8 @@ SlashCmdList.CNCPROBE = function(input)
     out("Un allié avec CnCProbe voit tes alertes en gros à l'écran, et toi les siennes.")
   elseif cmd == "map" then
     mapInfo()
+  elseif cmd == "carriers" then
+    carriersInfo()
   elseif cmd == "ping" then
     pingInfo()
     showPingButton()

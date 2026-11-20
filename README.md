@@ -3,47 +3,47 @@
 Add-on WoW: Forever (interface 16001) pour lancer des calls en Warsong Gulch avec une roue radiale.
 Tout l'add-on est en anglais pour le moment.
 
-**Geste : tenir la touche, glisser, relâcher.** 6 options maximum par roue.
+**Geste : tenir la touche, glisser, relâcher.** Version 0.8 (refonte validée par Dany le 19/11/2026) : tout tourne autour des deux porteurs, plus des ordres très simples.
 
-1. Appuyer sur la touche de la roue et la garder enfoncée : la roue s'ouvre sous le curseur.
-2. Glisser vers une action : DEF, FLAG, EFC, ATTACK, SCOUT, INC.
-3. Glisser vers un choix (6 par action).
-4. Étapes suivantes, toutes optionnelles (relâcher au milieu envoie ce qui est déjà choisi) :
-   - INC : nombre d'ennemis, 1 à 5+ ;
-   - SCOUT : CLEAR, 1 à 4+ ;
-   - EFC rampe, tunnel ou GY : côté (THEIRS en haut, OURS en bas à droite), puis escorteurs (ALONE, 1 à 4+) ; EFC salle, toit, mid : escorteurs directement.
-   - Chaque étape optionnelle a une case **CANCEL** en bas à gauche (croix rouge) : passer dessus annule tout, rien ne part au relâchement (sauf si le curseur repart vers une autre case).
-5. Relâcher la touche : le message part en /bg. Revenir au centre avant de relâcher = rien n'est envoyé.
+1. Tenir la touche de la roue : la roue s'ouvre sous le curseur.
+2. Étape 1, 5 cases en pentagone : **EFC** (leur porteur, en haut), **ATTACK** (haut droite), **FC** (notre porteur, bas droite), **DEF** (bas gauche), **INC** (haut gauche). Attaque à droite, défense à gauche, urgence en haut.
+3. Étape 2, les lieux en « pyramide », même disposition partout : salle du drapeau en haut, toit en haut à droite, rampe en bas à droite, mid en bas, cimetière (GY) en bas à gauche, tunnel en haut à gauche.
+4. Relâcher : le message part en /bg (avec un ping ciblé si une cible convient).
 
-Le choix se déclenche quand le curseur atteint l'icône d'une part ; la part visée s'éclaire avant.
+**Couleur = côté** : bleu = chez nous, rouge = chez eux. Jamais de mot à lire. Mid n'a pas de côté.
 
-Chaque call peut poser un **ping** en même temps (même macro sécurisée, `/ping` sur une unité) :
+| Action | Relâcher après l'action | Étape 2 | Étapes optionnelles |
+|---|---|---|---|
+| EFC (leur porteur) | `EFC: attack their flag carrier` + ping | lieux en bleu (pas de salle) : `EFC: their flag carrier is at OUR RAMP` | grosse case en haut = même lieu en rouge (chez eux) ; CANCEL en bas à gauche |
+| FC (notre porteur) | `FC: escort our carrier` + ping | CAP en haut (`CAP: our flag is home, cap now`), lieux en rouge : `FC: escort our carrier, THEIR TUNNEL` | grosse case en haut = même lieu en bleu ; CANCEL |
+| DEF | — (centre = annuler) | lieux en bleu : `DEF: defend OUR FLAG ROOM` | nombre : ALL (haut), 1, 2, 3, CANCEL, 5 : `DEF: 3 defend OUR FLAG ROOM` |
+| ATTACK | — | lieux en rouge : `ATTACK: attack THEIR ROOF` | nombre : `ATTACK: everyone attack THEIR ROOF` |
+| INC | — | lieux en bleu : `INC: enemies coming at OUR TUNNEL` | case du haut = même lieu en rouge (scouting), puis nombre ; ou nombre directement : `INC: 3 enemies coming at OUR TUNNEL` |
 
-| Call | Ping |
-|---|---|
-| EFC, ATTACK | Attaque sur la cible, si c'est un ennemi vivant |
-| INC, SCOUT | Attention sur la cible, si c'est un ennemi vivant |
-| FLAG Got it | Aide sur soi (c'est forcément le porteur qui l'envoie) |
-| FLAG Help | Aide sur la cible, si c'est un allié |
-| DEF Escort | Aide sur la cible, si c'est un allié |
+Relâcher au centre d'une étape optionnelle envoie ce qui est déjà choisi ; la case **CANCEL** (croix rouge, toujours en bas à gauche) annule. Format des messages : abréviation pro en tête, phrase simple pour les novices, côté et lieu en majuscules. Carte complète : [CommandAndConquer/Data.lua](CommandAndConquer/Data.lua) (la même source sert à l'add-on, aux tests et à la page d'entraînement).
 
-Sans cible du bon type, seul le message part. `/cnc ping` coupe ou remet les pings.
+Touches directes (Échap > Raccourcis > AddOns) : « EFC only », « ATTACK only », « FC only », « DEF only », « INC only » ouvrent directement l'étape 2.
 
-Un même lieu garde la même direction dans toutes les actions, pour que la main apprenne le geste :
+### Anti-spam et mode expérimental
 
-| Direction | Lieu |
-|---|---|
-| Haut | Salle du drapeau (FR / EFR) |
-| Haut droite | Toit |
-| Bas droite | Rampe |
-| Bas | Tunnel |
-| Bas gauche | Côté GY |
-| Haut gauche | Mid |
+- **Anti-spam** : une seconde minimum entre deux calls (le second est refusé, avec un message).
+- **Expérimental** (`/cnc exp on`, éteint par défaut, chaque nouveauté avec repli automatique) :
+  - `hover` : une case n'est prise qu'après 0,1 s sur son icône (contre les faux calls en glissant trop vite) ;
+  - `undo` : retaper la touche (sans rien choisir) dans les 3 s après un call envoie « Ignore my last call » ;
+  - `carrier` : pings et marque tête de mort sur les unités des portraits des porteurs (`/cnc carrier enemy arena1`, `/cnc carrier friend arena2`, unités à confirmer avec `/cnct carriers`), repli sur la cible ; « I have their flag » automatique si tu portes. Attention : le code source Blizzard ne met pas `UnitIsUnit` dans l'environnement sécurisé, donc cette dernière partie ne marchera que si Forever l'ajoute (le rapport le dit).
+- Les fonctions minutées (anti-spam, hover, undo) reposent sur `RegisterAutoHide` ; un auto-test au chargement vérifie qu'il marche, sinon elles restent coupées.
+- **Rapport** : l'add-on note ce qui a marché ou bloqué (auto-test, calls envoyés, actions bloquées) dans ses SavedVariables, à la déconnexion ou au `/reload`. `tools/update-cnc.bat` le copie dans le presse-papiers. `/cnc report` en affiche le résumé.
 
-Les options qui ne sont pas des lieux prennent la place du lieu le moins utile pour l'action (ESCORT pour DEF, ZERG pour ATTACK, HELP, TAKE et CAP! pour FLAG).
-Des touches directes (INC, SCOUT, EFC, FLAG, DEF, ATTACK) sautent l'étape 1.
+## Page d'entraînement (simulateur)
 
-Carte actuelle des messages : [CommandAndConquer/Data.lua](CommandAndConquer/Data.lua). Les messages sont en anglais simple, sans jargon (pas de EFC, EFR, GY, zerg…) ; le jargon court reste seulement sur les libellés de la roue. Base de départ validée : [docs/mapping-roue-v3.md](docs/mapping-roue-v3.md) (8 choix, réduite à 6 le 17/11/2026).
+`web/` : une page où l'on s'entraîne à faire ses calls, sans lancer WoW. **La roue de la page, c'est la roue de l'add-on** : le navigateur exécute les vrais fichiers Lua de l'add-on (Data.lua, Wheel.lua, Core.lua… dans l'ordre du `.toc`) avec [wasmoon](https://github.com/ceifa/wasmoon), sur la même émulation de l'API WoW que les tests (`tools/sim/wowemu.lua`), avec les mêmes textures (exportées en PNG).
+
+- **Entraînement** : une situation au hasard (croquis de la carte + consigne), la page compare le call envoyé au call attendu, mesure le temps, compte les erreurs, garde les meilleurs temps (navigateur). `N` = situation suivante.
+- **Bac à sable** : roue libre, faux chat /bg, pings affichés, interrupteurs (combat, cible, options expérimentales, « je porte le drapeau »). Les commandes `/cnc` se tapent dans le chat.
+- Touches : `Tab` ou `Espace` tenu, `1` à `5` pour les touches directes.
+- Situations : [web/situations.txt](web/situations.txt), une ligne par situation, avec le call attendu en touches de la roue (`INC > TUN > 3`). Les tests vérifient que chaque situation existe encore dans la roue.
+- Publication automatique : `.github/workflows/pages.yml` reconstruit et publie la page (GitHub Pages) à chaque push. À activer une fois : Settings > Pages > Source = GitHub Actions.
+- En local : `npm ci --prefix web && node tools/build-web.mjs && python3 -m http.server -d _site`.
 
 ## Pourquoi « relâcher pour envoyer »
 
@@ -82,9 +82,11 @@ Ensuite :
 | `probe/CnCProbe/` | Add-on de test : qu'est-ce qu'un add-on a le droit d'envoyer, et où |
 | `.github/workflows/test.yml` | Tests automatiques à chaque push : syntaxe Lua, fichiers des `.toc`, icônes, simulation de la roue |
 | `tools/update-cnc.bat` | Mise à jour en un double-clic depuis GitHub (Windows), à placer dans `Interface/AddOns/` |
-| `tools/wheelsim.lua` | Test hors jeu de la roue (émule l'API WoW et le code sécurisé) : `lua5.1 tools/wheelsim.lua CommandAndConquer` |
+| `tools/sim/wowemu.lua` | Émulation de l'API WoW (cadres, souris, raccourcis, code sécurisé, macros), partagée par les tests et la page |
+| `tools/wheelsim.lua` | Test hors jeu de la roue : `lua5.1 tools/wheelsim.lua` (et `node tools/websim-check.mjs` : le même test en Lua 5.4, moteur de la page) |
+| `web/`, `tools/build-web.mjs` | Page d'entraînement et sa construction |
 | `tools/make_media.py` | Génère les textures de la roue et les icônes (game-icons.net, CC BY 3.0, voir `CommandAndConquer/CREDITS.md`) |
-| `docs/` | Carte des messages validée |
+| `docs/` | Carte v3 (historique ; la carte actuelle est Data.lua) |
 
 ## Jalons
 
@@ -92,4 +94,5 @@ Ensuite :
 |---|---|
 | 1. Un add-on peut-il écrire en /bg sur Forever ? | Fait : non en direct, oui par bouton sécurisé |
 | 2. Prototype de la roue (étapes 1 à 3) | v0.5 : 6 options par roue, SCOUT, EFC avec côté et escorteurs, étapes après la 2e optionnelles (clic droit abandonné : non fonctionnel sur Forever) |
-| 3. Premier essai en BG réel | À faire |
+| 3. Premier essai en BG réel | Fait (17/11) : les calls partent dans le canal Instance |
+| 4. Refonte v0.8 (porteurs, pentagone, couleurs de côté) et page d'entraînement | Codé le 20/11, à tester en jeu |
