@@ -3,44 +3,71 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Command &amp; Conquer — call wheel for Warsong Gulch</title>
+  <title>Command &amp; Conquer: call wheel for Warsong Gulch</title>
   <meta name="description" content="A WoW: Forever add-on for Warsong Gulch: hold a key, flick, release, and your call is in /bg. Built for pick-up groups, usable blind while carrying the flag.">
-  <meta property="og:title" content="Command &amp; Conquer — call wheel for Warsong Gulch">
+  <meta property="og:title" content="Command &amp; Conquer: call wheel for Warsong Gulch">
   <meta property="og:description" content="Hold a key, flick, release: your call is in /bg. Try the wheel in your browser.">
   <meta property="og:image" content="/img/wheel-actions.png">
   <link rel="icon" href="/training-ground/media/icons/flag.png">
+  <link rel="stylesheet" href="/hud/hud.css">
   <link rel="stylesheet" href="/landing.css">
 </head>
 <body>
+  <div class="world" data-zone="ours" aria-hidden="true">
+    <div class="world-layer ours"></div>
+  </div>
   <header class="top">
     <a class="logo" href="/">Command <span>&amp;</span> Conquer</a>
     <nav>
       <a href="#how">How it works</a>
       <a href="#calls">Calls</a>
       <a href="#install">Install</a>
-      <a class="btn small" href="/training-ground/">Training ground</a>
+      <a class="wow-btn" href="/training-ground/">Training ground</a>
     </nav>
   </header>
 
   <main>
     <section class="hero">
+      <div class="hero-score" aria-hidden="true">
+        <div class="bg-score">
+          <span class="bg-flag ally"></span><span>2/3</span>
+          <span class="bg-flag horde"></span><span>1/3</span>
+        </div>
+      </div>
       <div class="hero-text">
         <p class="kicker">WoW: Forever add-on · Warsong Gulch</p>
-        <h1>Make the call<br>without letting go of the fight.</h1>
+        <h1 class="raid-warning">Make the call<br>without letting go of the fight.</h1>
         <p class="lead">Hold a key, flick the mouse, release. Your call is in <code>/bg</code>, with a ping on the right player.
           Built to be used blind: while running, turning the camera, or carrying the flag.</p>
         <div class="cta">
-          <a class="btn" href="/training-ground/">Try the wheel in your browser</a>
-          <a class="btn ghost" href="#install">Install the add-on</a>
+          <a class="wow-btn big" href="/training-ground/">Try the wheel in your browser</a>
+          <a class="wow-btn dark big" href="#install">Install the add-on</a>
         </div>
         <p class="note">The training ground runs the add-on's own Lua code. What you practise is exactly what you get in game.</p>
       </div>
       <figure class="hero-wheel">
         <img src="/img/wheel-actions.png" width="439" height="471" alt="The call wheel open on its first step: EFC on top, ATTACK, FC, DEF and INC around it.">
       </figure>
+      <div class="hero-chat" aria-hidden="true">
+        <div class="chat-tabs"><span class="on">General</span><span>Combat Log</span></div>
+        <ol class="chat-lines">
+          <li class="system">The battle for Warsong Gulch has begun!</li>
+          <li class="horde">The Alliance flag was picked up by Gruk!</li>
+          <li class="instance">[Instance] [You]: EFC: their flag carrier is at OUR RAMP</li>
+          <li class="instance">[Instance] [Bjorn]: on it</li>
+        </ol>
+      </div>
+      <div class="hero-bar slots" aria-hidden="true">
+        <div class="slot"><span class="hero-tab">Tab</span></div>
+        <div class="slot"><img src="/training-ground/media/icons/efc.png" alt=""><kbd>1</kbd></div>
+        <div class="slot"><img src="/training-ground/media/icons/attack.png" alt=""><kbd>2</kbd></div>
+        <div class="slot"><img src="/training-ground/media/icons/flag.png" alt=""><kbd>3</kbd></div>
+        <div class="slot"><img src="/training-ground/media/icons/def.png" alt=""><kbd>4</kbd></div>
+        <div class="slot"><img src="/training-ground/media/icons/inc.png" alt=""><kbd>5</kbd></div>
+      </div>
     </section>
 
-    <section id="how" class="band">
+    <section id="how" class="band window">
       <h2>Three moves, under a second</h2>
       <ol class="steps">
         <li>
@@ -61,7 +88,7 @@
       </ol>
     </section>
 
-    <section id="calls" class="split">
+    <section id="calls" class="split window">
       <div>
         <h2>Built around the two flag carriers</h2>
         <p>Five actions, always in the same place. Urgency on top, attack on the right, defence on the left.</p>
@@ -78,14 +105,14 @@
       </figure>
     </section>
 
-    <section class="split reverse">
+    <section class="split reverse window">
       <div>
         <h2>Blue is ours, red is theirs</h2>
         <p>No word to read for the side. Places keep the same spot on both sides: flag room on top, roof top right, ramp bottom right,
           mid at the bottom, graveyard bottom left, tunnel top left. Need the other side? One big sector on top flips it.</p>
         <h3>Messages anyone understands</h3>
         <p>The short term veterans react to comes first, then plain English for newcomers:</p>
-        <ul class="msgs">
+        <ul class="msgs chat-lines">
           <li><code>EFC: their flag carrier is at OUR RAMP</code></li>
           <li><code>FC: escort our carrier, THEIR TUNNEL</code></li>
           <li><code>DEF: 3 defend OUR FLAG ROOM</code></li>
@@ -99,14 +126,14 @@
       </figure>
     </section>
 
-    <section class="band train">
+    <section class="band train window">
       <h2>Practise before you queue</h2>
-      <p>The training ground throws situations at you — “their carrier runs out through our ramp”, “3 enemies in our tunnel” —
+      <p>The training ground throws situations at you (“their carrier runs out through our ramp”, “3 enemies in our tunnel”),
         times your call and counts mistakes. Same keys as in game: hold Tab or Space.</p>
-      <a class="btn" href="/training-ground/">Open the training ground</a>
+      <a class="wow-btn big" href="/training-ground/">Open the training ground</a>
     </section>
 
-    <section id="install" class="install">
+    <section id="install" class="install window">
       <h2>Install</h2>
       <ol>
         <li>Download the <a href="https://github.com/silentdany/command-and-conquer/archive/refs/heads/ccr-68b5b91f-h12h49.zip">latest version</a> and copy the <code>CommandAndConquer</code> folder into <code>Interface/AddOns</code> of your WoW: Forever client.</li>
@@ -121,7 +148,7 @@
 
   <footer class="foot">
     <span>Command &amp; Conquer · fan-made add-on, not affiliated with Blizzard Entertainment.</span>
-    <span>Icons: <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0).</span>
+    <span>Icons: <a href="https://game-icons.net">game-icons.net</a> (CC BY 3.0). Backgrounds: original art.</span>
     <a href="https://github.com/silentdany/command-and-conquer">Source on GitHub</a>
   </footer>
 </body>
