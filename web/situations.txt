@@ -1,0 +1,39 @@
+# Training situations, one per line:
+#   id | scene | instruction (shown to the player) | expected call | options
+#
+# scene:    what the map sketch shows: <marker>[:count] <side> <place>
+#           marker = efc (their carrier), fc (our carrier), you (you carry),
+#                    enemies, allies, cap (our flag is home)
+#           side   = ours | theirs | mid ;  place = FR ROOF RAMP MID GY TUN
+# expected: the wheel keys, as in the add-on (Data.lua):
+#           actions EFC ATTACK FC DEF INC, places FR ROOF RAMP MID GY TUN CAP,
+#           FLIP = the big "other side" sector, counts 1 2 3 5 ALL.
+#           Checked by the tests: a key that no longer exists fails the build.
+# options:  target=enemy|friend|none (what you have targeted)
+#
+efc-spotted     | efc ours FR        | Their flag carrier just grabbed our flag. Tell everyone to get him.            | EFC                      | target=enemy
+efc-our-ramp    | efc ours RAMP      | Their flag carrier runs out through our ramp.                                  | EFC > RAMP               |
+efc-our-tunnel  | efc ours TUN       | Their flag carrier escapes through our tunnel.                                 | EFC > TUN                |
+efc-our-gy      | efc ours GY        | Their flag carrier goes out on our graveyard side.                             | EFC > GY                 |
+efc-mid         | efc mid MID        | Their flag carrier crosses the middle of the field.                            | EFC > MID                |
+efc-their-roof  | efc theirs ROOF    | Their flag carrier is already on their roof.                                   | EFC > ROOF > FLIP        |
+efc-their-tun   | efc theirs TUN     | Their flag carrier enters their tunnel.                                        | EFC > TUN > FLIP         |
+fc-escort       | fc theirs FR       | Our carrier just took their flag. Ask for an escort.                           | FC                       | target=friend
+fc-their-tun    | fc theirs TUN      | Our carrier is stuck in their tunnel and needs help to get out.                | FC > TUN                 |
+fc-their-ramp   | fc theirs RAMP     | Our carrier jumps down their ramp.                                             | FC > RAMP                |
+fc-our-roof     | fc ours ROOF       | Our carrier is back on our roof.                                               | FC > ROOF > FLIP         |
+fc-cap          | cap ours FR        | Our flag is back home and our carrier waits in our flag room.                  | FC > CAP                 |
+you-carry       | you theirs FR      | You carry their flag. Call for an escort.                                      | FC                       |
+def-fr          | allies:0 ours FR   | Nobody guards our flag room.                                                   | DEF > FR                 |
+def-fr-3        | allies:0 ours FR   | Ask for 3 players to defend our flag room.                                     | DEF > FR > 3             |
+def-all-ramp    | enemies:6 ours RAMP| Their whole team pushes our ramp. Everyone back to defend it.                  | DEF > RAMP > ALL         |
+attack-roof     | allies:2 theirs ROOF | Their roof is open. Send people to attack it.                                | ATTACK > ROOF            |
+attack-fr-all   | enemies:1 theirs FR| Their flag room has a single defender. Everyone attack it.                     | ATTACK > FR > ALL        | target=enemy
+attack-mid-2    | enemies:2 mid MID  | Ask 2 players to attack at mid.                                                | ATTACK > MID > 2         |
+inc-tunnel      | enemies:2 ours TUN | Enemies are coming into our tunnel.                                            | INC > TUN                | target=enemy
+inc-tunnel-3    | enemies:3 ours TUN | 3 enemies are coming into our tunnel.                                          | INC > TUN > 3            | target=enemy
+inc-fr-1        | enemies:1 ours FR  | One enemy sneaks into our flag room.                                           | INC > FR > 1             |
+inc-gy-5        | enemies:5 ours GY  | 5 enemies come round our graveyard side.                                       | INC > GY > 5             |
+scout-their-ramp| enemies:3 theirs RAMP | You scout: 3 enemies wait at their ramp.                                    | INC > RAMP > FLIP > 3    |
+scout-their-fr  | enemies:2 theirs FR| You scout: enemies in their flag room.                                         | INC > FR > FLIP          |
+inc-mid-all     | enemies:10 mid MID | All their team is at mid.                                                      | INC > MID > ALL          |

@@ -1,0 +1,9 @@
+{
+  "name": "cnc-training-page",
+  "private": true,
+  "description": "Training page for the Command & Conquer add-on: runs the add-on's real Lua code in the browser.",
+  "license": "MIT",
+  "dependencies": {
+    "wasmoon": "1.16.0"
+  }
+}

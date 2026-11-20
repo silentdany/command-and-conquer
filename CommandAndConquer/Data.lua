@@ -1,207 +1,313 @@
--- Wheel content. Based on docs/mapping-roue-v3.md (validated 17/11/2026),
--- cut to 6 options per wheel (Dany, 17/11/2026: bigger sectors, less mess).
--- All text is English for now (decision 17/11/2026). Messages are plain
--- English with no WSG jargon (EFC, EFR, GY, zerg, peel...): Dany, 17/11/2026.
--- Short jargon stays only in the wheel labels.
+-- Wheel content, v0.8 (redesign validated by Dany on 19/11/2026).
 --
--- Every wheel has 6 sectors, clockwise from the top:
---   1 = top, 2 = top right, 3 = bottom right, 4 = bottom, 5 = bottom left, 6 = top left
+-- Everything turns around the two flag carriers, plus very simple orders:
+-- the target is pick-up groups, organised teams use Discord.
 --
--- Step 1: actions. INC stays top left (most used), SCOUT bottom left.
--- Step 2: a place keeps the same direction in every action, so the hand
--- learns the gesture:
---   top = flag room, top right = roof, bottom right = ramp,
---   bottom = tunnel, bottom left = GY side, top left = mid
--- Non-place options take the slot of the least useful place for that action.
--- Steps after 2 are optional (Dany, 17/11/2026): releasing in the middle
--- sends what is picked so far.
---   EFC ramp / tunnel / GY: side (THEIRS top, OURS bottom), then escorts.
---   INC, SCOUT, EFC: number of enemies, clockwise from the top.
+-- Sectors are numbered clockwise from the top.
 --
--- icon = file in Media/icons (game-icons.net, see CREDITS.md).
--- enemy = true draws the icon red: a place on their side.
--- counts = labels of the optional count ring for this action. Every
--- optional ring has a CANCEL sector bottom left (sector 5 of 6, 3 of 3):
--- the right click could not be made to work, Dany needs a way out.
+-- Step 1, 5 sectors (pentagon, point up, no empty sector):
+--   1 top EFC (their carrier, the most urgent), 2 top right ATTACK,
+--   3 bottom right FC (our carrier), 4 bottom left DEF, 5 top left INC.
+--   Attack on the right, defence on the left, urgency on top.
+--
+-- Step 2, places in a "pyramid" (Dany's view of the map), the same on
+-- both sides: the colour says the side, never a word.
+--   1 top flag room, 2 top right roof, 3 bottom right ramp,
+--   4 bottom mid, 5 bottom left GY, 6 top left tunnel.
+--   Blue = our side, red = their side. Mid has no side.
+--
+-- Optional steps (release = send what is picked so far):
+--   side ring: one big sector on top = the same place on the other side,
+--              CANCEL bottom left.
+--   count ring: ALL top, 1 top right, 2 bottom right, 3 bottom, CANCEL
+--               bottom left, 5 top left. For INC the top sector changes
+--               side instead (see below).
+--
+-- Messages: short pro abbreviation in capitals first, then a plain English
+-- sentence for newcomers, with side and place in capitals (19/11/2026):
+--   "EFC: their flag carrier is at OUR RAMP", "DEF: 3 defend OUR FLAG ROOM".
+--
+-- This file is plain data plus pure functions: the add-on reads it, the
+-- offline simulation and the training web page run the very same file.
 
 local _, ns = ...
 
+ns.VERSION = "0.8.0"
 ns.CANCEL = "CANCEL"
-ns.COUNT_RING = 3
-ns.SIDE_RING = 4
-local CANCEL = ns.CANCEL
 
--- Optional ping sent with the call, through the same secure macro
--- ("/ping" with a unit, tested OK in a battleground on 17/11/2026). Macro
--- conditions skip the ping when there is no fitting target.
-local PING_ENEMY_ATTACK = "/ping [@target,harm,nodead] attack"
-local PING_ENEMY_WARNING = "/ping [@target,harm,nodead] warning"
-local PING_FRIEND_ASSIST = "/ping [@target,help,nodead] assist"
--- Only for "I have their flag": the caller is the carrier. Other FLAG
--- calls can come from anyone, and macro conditions cannot tell who holds
--- the flag, so they never ping yourself (bug seen in game, 17/11/2026).
-local PING_ME_ASSIST = "/ping [@player] assist"
+-- Ring indices (see RINGS in Wheel.lua).
+ns.RING_ACTIONS = 1
+ns.RING_PLACES = 2
+ns.RING_SIDE = 3
+ns.RING_COUNT = 4
+ns.RING_COUNT2 = 5 -- count ring opened after a side change (INC)
+
+-- Sector used by CANCEL on each optional ring (always bottom left).
+ns.CANCEL_SLOT = { [3] = 3, [4] = 5, [5] = 5 }
+
+ns.OURS, ns.THEIRS, ns.NEUTRAL = "ours", "theirs", "neutral"
+
+ns.PLACES = {
+  { key = "FR", label = "FR", icon = "flag", name = "FLAG ROOM" },
+  { key = "ROOF", label = "ROOF", icon = "roof", name = "ROOF" },
+  { key = "RAMP", label = "RAMP", icon = "ramp", name = "RAMP" },
+  { key = "MID", label = "MID", icon = "mid", name = "MID", neutral = true },
+  { key = "GY", label = "GY", icon = "gy", name = "GRAVEYARD" },
+  { key = "TUN", label = "TUN", icon = "tunnel", name = "TUNNEL" },
+}
+
+-- Count ring, by sector. key is also the label.
+ns.COUNTS = {
+  [1] = { key = "ALL", n = "all" },
+  [2] = { key = "1", n = 1 },
+  [3] = { key = "2", n = 2 },
+  [4] = { key = "3", n = 3 },
+  [6] = { key = "5", n = 5 },
+}
+
+-- Ping kinds, turned into "/ping" lines by ns.PingLine. Sent in the same
+-- secure macro as the message ("/ping [@unit]" tested OK in a BG, 17/11).
+--   enemy:  their carrier (experimental unit) or the target if hostile
+--   friend: our carrier (experimental unit) or the target if friendly
+--   me:     yourself (only when you are the carrier)
+--   warn:   "warning" on the target if hostile
+ns.PING_EFC = { kind = "attack", who = "enemy", carrier = true, mark = true }
+ns.PING_ATTACK = { kind = "attack", who = "enemy" }
+ns.PING_FC = { kind = "assist", who = "friend", carrier = true }
+ns.PING_ME = { kind = "assist", who = "me" }
+ns.PING_INC = { kind = "warning", who = "enemy" }
+
+local function where(place, side)
+  if place.neutral then return place.name end
+  return (side == ns.OURS and "OUR " or "THEIR ") .. place.name
+end
+
+local function other(side)
+  if side == ns.OURS then return ns.THEIRS end
+  return ns.OURS
+end
+
+local function sideOf(place, side)
+  if place.neutral then return ns.NEUTRAL end
+  return side
+end
+
+-- Players asked for (DEF, ATTACK): "DEF: 3 defend OUR FLAG ROOM".
+local function playersMessage(abbr, verb, count, at)
+  if count.n == "all" then
+    return abbr .. ": everyone " .. verb .. " " .. at
+  end
+  return abbr .. ": " .. count.n .. " " .. verb .. " " .. at
+end
+
+-- Enemies seen (INC): "INC: 3 enemies coming at OUR TUNNEL".
+local function enemiesMessage(count, side, at)
+  local verb = (side == ns.THEIRS) and " at " or " coming at "
+  if not count then return "INC: enemies" .. verb .. at end
+  if count.n == "all" then return "INC: all enemies" .. verb .. at end
+  if count.n == 1 then return "INC: 1 enemy" .. verb .. at end
+  return "INC: " .. count.n .. " enemies" .. verb .. at
+end
 
 ns.ACTIONS = {
   {
+    key = "EFC", label = "EFC", icon = "efc", ping = ns.PING_EFC,
+    side = ns.OURS,          -- blue first: that's where we can catch him
+    optional = true,         -- release after step 1 = ping their carrier
+    msg = "EFC: attack their flag carrier",
+    places = { false, true, true, true, true, true }, -- no flag room
+    placeMsg = function(at) return "EFC: their flag carrier is at " .. at end,
+    flip = true,
+  },
+  {
+    key = "ATTACK", label = "ATTACK", icon = "attack", ping = ns.PING_ATTACK,
+    side = ns.THEIRS,
+    placeMsg = function(at) return "ATTACK: attack " .. at end,
+    countMsg = function(count, at) return playersMessage("ATTACK", "attack", count, at) end,
+  },
+  {
+    key = "FC", label = "FC", icon = "flag", ping = ns.PING_FC,
+    side = ns.THEIRS,        -- red first: he needs help to get out
+    optional = true,         -- release after step 1 = ping our carrier
+    msg = "FC: escort our carrier",
+    meMsg = "FC: I have their flag, escort me",
+    places = { false, true, true, true, true, true },
+    -- CAP takes the flag room sector (top).
+    special = { [1] = { key = "CAP", label = "CAP", icon = "cap", msg = "CAP: our flag is home, cap now" } },
+    placeMsg = function(at) return "FC: escort our carrier, " .. at end,
+    mePlaceMsg = function(at) return "FC: I have their flag, escort me, " .. at end,
+    flip = true,
+  },
+  {
     key = "DEF", label = "DEF", icon = "def",
-    choices = {
-      { label = "FR", icon = "flag", msg = "Defend our flag room" },
-      { label = "ROOF", icon = "roof", msg = "Defend our roof" },
-      { label = "RAMP", icon = "ramp", msg = "Defend our ramp" },
-      { label = "TUN", icon = "tunnel", msg = "Defend our tunnel" },
-      { label = "GY", icon = "gy", msg = "Guard our graveyard entrance" },
-      { label = "ESCORT", icon = "escort", msg = "Protect our flag carrier", ping = PING_FRIEND_ASSIST },
-    },
+    side = ns.OURS,
+    placeMsg = function(at) return "DEF: defend " .. at end,
+    countMsg = function(count, at) return playersMessage("DEF", "defend", count, at) end,
   },
   {
-    key = "FLAG", label = "FLAG", icon = "flag",
-    choices = {
-      { label = "GOT IT", icon = "flag", msg = "I have their flag, escort me", ping = PING_ME_ASSIST },
-      { label = "HELP", icon = "help", msg = "Our flag carrier needs help", ping = PING_FRIEND_ASSIST },
-      { label = "RAMP", icon = "ramp", msg = "Our flag carrier going ramp" },
-      { label = "TUN", icon = "tunnel", msg = "Our flag carrier going tunnel" },
-      -- TAKE replaced the carrier's graveyard route (least used), 18/11/2026.
-      { label = "TAKE", icon = "take", msg = "Take their flag" },
-      { label = "CAP!", icon = "cap", msg = "Our flag is home, cap now" },
-    },
-  },
-  {
-    key = "EFC", label = "EFC", icon = "efc", ping = PING_ENEMY_ATTACK,
-    counts = { "ALONE", "1", "2", "3", CANCEL, "4+" }, -- escorts (17/11/2026)
-    choices = {
-      { label = "EFR", icon = "flag", enemy = true, msg = "Enemy carrier in their flag room" },
-      { label = "E-ROOF", icon = "roof", enemy = true, msg = "Enemy carrier on their roof" },
-      -- The carrier leaves our base and enters theirs: these three ask the side.
-      { label = "RAMP", icon = "ramp", msg = "Enemy carrier at the ramp",
-        ours = "Enemy carrier at our ramp", theirs = "Enemy carrier on their ramp" },
-      { label = "TUN", icon = "tunnel", msg = "Enemy carrier at the tunnel",
-        ours = "Enemy carrier at our tunnel", theirs = "Enemy carrier entering their tunnel" },
-      { label = "GY", icon = "gy", msg = "Enemy carrier at the graveyard side",
-        ours = "Enemy carrier at our graveyard side", theirs = "Enemy carrier at their graveyard side" },
-      { label = "MID", icon = "mid", msg = "Enemy carrier at mid" },
-    },
-  },
-  {
-    key = "ATTACK", label = "ATTACK", icon = "attack", ping = PING_ENEMY_ATTACK,
-    choices = {
-      { label = "EFR", icon = "flag", enemy = true, msg = "Attack their flag room" },
-      { label = "ROOF", icon = "roof", enemy = true, msg = "Attack their roof" },
-      { label = "RAMP", icon = "ramp", enemy = true, msg = "Attack through their ramp" },
-      { label = "TUN", icon = "tunnel", enemy = true, msg = "Attack through their tunnel" },
-      { label = "ZERG", icon = "zerg", msg = "Everyone attack their base" },
-      { label = "MID", icon = "mid", msg = "Take control of mid" },
-    },
-  },
-  {
-    key = "SCOUT", label = "SCOUT", icon = "scout", ping = PING_ENEMY_WARNING,
-    counts = { "CLEAR", "1", "2", "3", CANCEL, "4+" },
-    -- Their side as seen by a scout (added 17/11/2026).
-    choices = {
-      { label = "EFR", icon = "flag", enemy = true, where = "in their flag room", place = "Their flag room" },
-      { label = "E-ROOF", icon = "roof", enemy = true, where = "on their roof", place = "Their roof" },
-      { label = "E-RAMP", icon = "ramp", enemy = true, where = "at their ramp", place = "Their ramp" },
-      { label = "E-TUN", icon = "tunnel", enemy = true, where = "in their tunnel", place = "Their tunnel" },
-      { label = "E-GY", icon = "gy", enemy = true, where = "at their graveyard side", place = "Their graveyard side" },
-      { label = "MID", icon = "mid", where = "at mid", place = "Mid" },
-    },
-  },
-  {
-    key = "INC", label = "INC", icon = "inc", ping = PING_ENEMY_WARNING,
-    counts = { "1", "2", "3", "4", CANCEL, "5+" },
-    choices = {
-      { label = "FR", icon = "flag", msg = "Incoming in our flag room" },
-      { label = "ROOF", icon = "roof", msg = "Incoming on our roof" },
-      { label = "RAMP", icon = "ramp", msg = "Incoming at our ramp" },
-      { label = "TUN", icon = "tunnel", msg = "Incoming at our tunnel" },
-      { label = "GY", icon = "gy", msg = "Incoming at our graveyard side" },
-      { label = "MID", icon = "mid", msg = "Incoming at mid" },
-    },
+    key = "INC", label = "INC", icon = "inc", ping = ns.PING_INC,
+    side = ns.OURS,          -- quick alert at home; red = scouting their side
+    placeMsg = function(at, side) return enemiesMessage(nil, side, at) end,
+    countMsg = function(count, at, side) return enemiesMessage(count, side, at) end,
+    flipInCounts = true,     -- the count ring's top sector changes side
   },
 }
 
--- Scout choices: message without a number.
-for _, choice in ipairs(ns.ACTIONS[5].choices) do
-  choice.msg = "Enemies " .. choice.where
-end
-
 -- Binding name -> action index for the direct bindings (skip step 1).
-ns.DIRECT = { CNC_DEF = 1, CNC_FLAG = 2, CNC_EFC = 3, CNC_ATTACK = 4, CNC_SCOUT = 5, CNC_INC = 6 }
+ns.DIRECT = { CNC_EFC = 1, CNC_ATTACK = 2, CNC_FC = 3, CNC_DEF = 4, CNC_INC = 5 }
 
--- Side ring, clockwise from the top: their base is "up", ours "down".
-ns.SIDES = { "THEIRS", "OURS", CANCEL }
+ns.UNDO_MSG = "Ignore my last call"
 
--- Messages for each count of a choice, in count ring order. base is the
--- message picked so far (with the side for EFC).
---   INC:   "Incoming at our tunnel" + "3" -> "3 incoming at our tunnel"
---   SCOUT: "3 enemies in their flag room", "1 enemy ...", "Their flag room is clear"
---   EFC:   "Enemy carrier at our ramp with 3 escorts", "..., alone"
-function ns.CountMessages(action, choice, base)
-  local list = {}
-  for k, count in ipairs(action.counts) do
-    if count == CANCEL then
-      -- no message: the cancel sector
-    elseif action.key == "EFC" then
-      if count == "ALONE" then
-        list[k] = base .. ", alone"
-      elseif count == "1" then
-        list[k] = base .. " with 1 escort"
-      else
-        list[k] = base .. " with " .. count .. " escorts"
+---------------------------------------------------------------------------
+-- Tree
+---------------------------------------------------------------------------
+
+-- Builds every path of the wheel. A path is "a-b-c..." (sector indices).
+--   msgs[path]   message sent when released there (nil: nothing sent)
+--   nexts[path]  ring opened after picking path
+--   pings[path]  ping spec (see ns.PingLine)
+--   meMsgs[path] message when you carry their flag (experimental)
+--   views[base]  what a ring shows when it opens after base:
+--                { ring = r, center = node, nodes = { [i] = node } }
+--                node = { key, label, icon, side, big, cancel }
+--   paths[path]  { action = a, place = p, side = s, count = c, flipped }
+function ns.BuildTree()
+  local msgs, nexts, pings, meMsgs, views, paths = {}, {}, {}, {}, {}, {}
+
+  local actionsView = { ring = ns.RING_ACTIONS, nodes = {} }
+  views[""] = actionsView
+
+  local function cancelNode()
+    return { key = ns.CANCEL, label = ns.CANCEL, icon = "cancel", cancel = true }
+  end
+
+  local function placeNode(place, side, big)
+    return { key = place.key, label = place.label, icon = place.icon, side = sideOf(place, side), big = big }
+  end
+
+  -- Count ring after path p (place picked on side), messages for each count.
+  local function addCounts(p, ring, action, place, side, withFlip)
+    local view = { ring = ring, nodes = {}, center = placeNode(place, side) }
+    views[p] = view
+    nexts[p] = ring
+    view.nodes[ns.CANCEL_SLOT[ring]] = cancelNode()
+    local at = where(place, side)
+    for slot, count in pairs(ns.COUNTS) do
+      if not (withFlip and slot == 1) then
+        local path = p .. "-" .. slot
+        view.nodes[slot] = { key = count.key, label = count.key, count = true }
+        msgs[path] = action.countMsg(count, at, side)
+        paths[path] = { action = paths[p].action, place = place.key, side = sideOf(place, side), count = count.key, flipped = paths[p].flipped }
       end
-    elseif action.key == "SCOUT" then
-      if count == "CLEAR" then
-        list[k] = choice.place .. " is clear"
-      elseif count == "1" then
-        list[k] = "1 enemy " .. choice.where
-      else
-        list[k] = count .. " enemies " .. choice.where
-      end
-    else
-      list[k] = count .. " " .. base:gsub("^Incoming", "incoming")
     end
   end
-  return list
+
+  for a, action in ipairs(ns.ACTIONS) do
+    local ap = "" .. a
+    actionsView.nodes[a] = { key = action.key, label = action.label, icon = action.icon }
+    nexts[ap] = ns.RING_PLACES
+    paths[ap] = { action = action.key }
+    if action.optional then
+      msgs[ap] = action.msg
+      meMsgs[ap] = action.meMsg
+    end
+
+    local placesView = { ring = ns.RING_PLACES, nodes = {}, center = { key = action.key, icon = action.icon } }
+    views[ap] = placesView
+
+    for slot, place in ipairs(ns.PLACES) do
+      local p = ap .. "-" .. slot
+      local special = action.special and action.special[slot]
+      if special then
+        placesView.nodes[slot] = { key = special.key, label = special.label, icon = special.icon }
+        msgs[p] = special.msg
+        paths[p] = { action = action.key, place = special.key }
+      elseif not action.places or action.places[slot] then
+        local side = action.side
+        local at = where(place, side)
+        placesView.nodes[slot] = placeNode(place, side)
+        msgs[p] = action.placeMsg(at, side)
+        if action.mePlaceMsg then meMsgs[p] = action.mePlaceMsg(at) end
+        paths[p] = { action = action.key, place = place.key, side = sideOf(place, side) }
+
+        if action.flip and not place.neutral then
+          -- Side ring: one big sector, the same place on the other side.
+          local flipSide = other(side)
+          local fp = p .. "-1"
+          nexts[p] = ns.RING_SIDE
+          views[p] = { ring = ns.RING_SIDE, center = placeNode(place, side),
+            nodes = { [1] = placeNode(place, flipSide, true), [ns.CANCEL_SLOT[ns.RING_SIDE]] = cancelNode() } }
+          views[p].nodes[1].key = "FLIP"
+          msgs[fp] = action.placeMsg(where(place, flipSide), flipSide)
+          if action.mePlaceMsg then meMsgs[fp] = action.mePlaceMsg(where(place, flipSide)) end
+          paths[fp] = { action = action.key, place = place.key, side = flipSide, flipped = true }
+        elseif action.countMsg then
+          local withFlip = action.flipInCounts and not place.neutral
+          addCounts(p, ns.RING_COUNT, action, place, side, withFlip)
+          if withFlip then
+            local flipSide = other(side)
+            local fp = p .. "-1"
+            local node = placeNode(place, flipSide)
+            node.key = "FLIP"
+            views[p].nodes[1] = node
+            msgs[fp] = action.placeMsg(where(place, flipSide), flipSide)
+            paths[fp] = { action = action.key, place = place.key, side = flipSide, flipped = true }
+            addCounts(fp, ns.RING_COUNT2, action, place, flipSide, false)
+          end
+        end
+      end
+    end
+  end
+
+  -- Pings: the action's, except CAP (said by anyone, nobody to ping).
+  for path in pairs(msgs) do
+    local a = tonumber(path:match("^(%d+)"))
+    local info = paths[path]
+    if info.place ~= "CAP" then pings[path] = ns.ACTIONS[a].ping end
+  end
+  return { msgs = msgs, nexts = nexts, pings = pings, meMsgs = meMsgs, views = views, paths = paths }
 end
 
--- Every message by path ("action-choice[-side][-count]", 1-based indices),
--- the optional ring to open after a path, and the ping line for a path
--- (choice ping, else action ping). Read by Wheel.lua.
-function ns.BuildTree()
-  local msgs, nexts, pings = {}, {}, {}
-  for a, action in ipairs(ns.ACTIONS) do
-    for c, choice in ipairs(action.choices) do
-      local path = a .. "-" .. c
-      msgs[path] = choice.msg
-      local countable = { [path] = choice.msg }
-      if choice.ours then
-        nexts[path] = ns.SIDE_RING
-        countable = {}
-        for side, name in ipairs(ns.SIDES) do
-          if name ~= CANCEL then
-            local sidePath = path .. "-" .. side
-            local msg = (name == "OURS") and choice.ours or choice.theirs
-            msgs[sidePath] = msg
-            countable[sidePath] = msg
-          end
-        end
-      end
-      if action.counts then
-        for p, base in pairs(countable) do
-          nexts[p] = ns.COUNT_RING
-          for k, msg in pairs(ns.CountMessages(action, choice, base)) do
-            msgs[p .. "-" .. k] = msg
-          end
-        end
-      end
+-- "/ping" (and skull mark) lines for a ping spec. opts:
+--   enemyUnit, friendUnit  carrier units (experimental, nil = unknown)
+-- Macro conditions skip the line when no unit fits, and fall back from the
+-- carrier unit to the target ("[@a] x; [@b] x").
+function ns.PingLine(spec, opts)
+  if not spec then return nil end
+  opts = opts or {}
+  if spec.who == "me" then
+    return "/ping [@player] " .. spec.kind
+  end
+  local cond = (spec.who == "friend") and "help" or "harm"
+  local target = "[@target," .. cond .. ",nodead] " .. spec.kind
+  local unit = spec.carrier and ((spec.who == "friend") and opts.friendUnit or opts.enemyUnit)
+  if not unit then
+    return "/ping " .. target
+  end
+  local line = "/ping [@" .. unit .. ",exists,nodead] " .. spec.kind .. "; " .. target
+  if spec.mark then
+    line = line .. "\n/tm [@" .. unit .. ",exists,nodead] 8"
+  end
+  return line
+end
+
+-- Path from wheel keys, for situations and tests:
+-- ns.PathFromKeys(tree, "INC > RAMP > FLIP > 3") -> "5-3-1-4"
+function ns.PathFromKeys(tree, text)
+  local base, path = "", nil
+  for token in text:gmatch("[^>%s]+") do
+    local view = tree.views[base]
+    if not view then return nil, "nothing to pick after " .. tostring(path) end
+    local found
+    for i, node in pairs(view.nodes) do
+      if node.key == token:upper() and not node.cancel then found = i end
     end
+    if not found then return nil, "no \"" .. token .. "\" on that ring" end
+    path = (base == "") and ("" .. found) or (base .. "-" .. found)
+    base = path
   end
-  for path in pairs(msgs) do
-    local a, c = path:match("^(%d+)-(%d+)")
-    local action = ns.ACTIONS[tonumber(a)]
-    pings[path] = action.choices[tonumber(c)].ping or action.ping
-  end
-  return msgs, nexts, pings
+  if not path or not tree.msgs[path] then return nil, "this path sends nothing" end
+  return path
 end
 
 ns.MEDIA = "Interface\\AddOns\\CommandAndConquer\\Media\\"

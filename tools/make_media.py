@@ -1,12 +1,16 @@
-"""Build the wheel textures (TGA) for the add-on.
+"""Build the wheel textures (TGA) for the add-on, and their PNG copies for
+the training web page.
 
 Usage, from the repo root:
     npm pack @iconify-json/game-icons && tar xzf iconify-json-game-icons-*.tgz
     pip install cairosvg pillow
-    python3 tools/make_media.py package/icons.json
+    python3 tools/make_media.py package/icons.json   # everything
+    python3 tools/make_media.py textures             # sectors and center only (Pillow)
+    python3 tools/make_media.py png OUT_DIR          # PNG copies of Media/ (Pillow)
 
 Writes CommandAndConquer/Media/:
     sector3_fill.tga, sector3_border.tga   one sector of a 3-part wheel, pointing up
+    sector5_fill.tga, sector5_border.tga   one sector of a 5-part wheel (step 1, v0.8)
     sector6_fill.tga, sector6_border.tga   one sector of a 6-part wheel, pointing up
     center.tga                              center disc with its border
     icons/<name>.tga                        white game-icons.net icons, 64x64
@@ -22,7 +26,6 @@ import math
 import os
 import sys
 
-import cairosvg
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "CommandAndConquer", "Media")
@@ -130,6 +133,8 @@ def make_center():
 
 
 def make_icons(icons_json):
+    import cairosvg  # only needed for the icons
+
     data = json.load(open(icons_json))["icons"]
     for key, name in ICONS.items():
         body = data[name]["body"]
@@ -140,13 +145,37 @@ def make_icons(icons_json):
         save_tga(img, f"icons/{key}.tga")
 
 
+def export_png(out_dir):
+    """Same pixels as the add-on's TGA files, as PNG for the browser."""
+    count = 0
+    for folder, _, files in os.walk(OUT):
+        for name in files:
+            if not name.endswith(".tga"):
+                continue
+            rel = os.path.relpath(os.path.join(folder, name), OUT)
+            dest = os.path.join(out_dir, rel[:-4] + ".png")
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            Image.open(os.path.join(folder, name)).convert("RGBA").save(dest, optimize=True)
+            count += 1
+    print(count, "PNG files written to", os.path.normpath(out_dir))
+
+
 def main():
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    if args[:1] == ["png"] and len(args) == 2:
+        export_png(args[1])
+        return
+    if args == ["textures"]:
+        for n in (3, 5, 6):
+            make_sectors(n)
+        make_center()
+    elif len(args) == 1:
+        for n in (3, 5, 6):
+            make_sectors(n)
+        make_center()
+        make_icons(args[0])
+    else:
         sys.exit(__doc__)
-    make_sectors(3)
-    make_sectors(6)
-    make_center()
-    make_icons(sys.argv[1])
     print("Media written to", os.path.normpath(OUT))
 
 
