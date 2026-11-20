@@ -7,6 +7,8 @@
 // PNG), forwards the mouse and keys, and reads what the secure button sent.
 
 import { parseScene, drawScene } from "./scene.js";
+import { setZone, setTarget, setCarriers, setScore, startClocks, pressSlot, replay } from "./hud.js";
+import { play, unlockAudio, isMuted, setMuted } from "./sound.js";
 
 const UI_HEIGHT = 768; // WoW's UI is 768 units high
 const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
@@ -112,6 +114,9 @@ async function boot() {
   new ResizeObserver(resize).observe(game);
   bindInput();
   bindPanel();
+  bindSound();
+  startClocks();
+  addChat("system", "The battle for Warsong Gulch has begun!");
   setMode("train");
   requestAnimationFrame(frame);
 }
@@ -197,6 +202,7 @@ function bindInput() {
     L.mouse((e.clientX - rect.left) / scale, UI_HEIGHT - (e.clientY - rect.top) / scale);
   });
   game.addEventListener("pointerdown", (e) => {
+    unlockAudio();
     if (!typing(e) && e.target.closest && !e.target.closest(".panel, .chat")) game.focus();
   });
   window.addEventListener("keydown", (e) => {
@@ -204,17 +210,21 @@ function bindInput() {
       if (e.key === "Escape") e.target.blur();
       return;
     }
+    unlockAudio();
     const k = KEYS[e.code];
     if (k && !e.ctrlKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
       if (!e.repeat && !held.has(k)) {
         held.add(k);
+        pressSlot(k, true);
         L.key(k, true);
       }
       return;
     }
     if (mode === "train" && e.code === "KeyN") {
       e.preventDefault();
+      pressSlot("N", true);
+      setTimeout(() => pressSlot("N", false), 150);
       nextSituation();
     }
     if (e.code === "Slash" || e.code === "Enter") {
@@ -227,11 +237,15 @@ function bindInput() {
     if (k && held.has(k)) {
       e.preventDefault();
       held.delete(k);
+      pressSlot(k, false);
       L.key(k, false);
     }
   });
   window.addEventListener("blur", () => {
-    for (const k of held) L.key(k, false);
+    for (const k of held) {
+      pressSlot(k, false);
+      L.key(k, false);
+    }
     held.clear();
   });
   $("slash").addEventListener("submit", (e) => {
@@ -267,8 +281,9 @@ function handleOutput(out) {
     const f = line.split("\t");
     switch (f[0]) {
       case "chat":
-        if (f[1] === "INSTANCE_CHAT") addChat("instance", `[Instance] Elemente: ${f[2]}`);
-        else addChat("whisper", `To ${f[3]} (practice): ${f[2]}`);
+        if (f[1] === "INSTANCE_CHAT") addChat("instance", `[Instance] [You]: ${f[2]}`);
+        else addChat("whisper", `To [${f[3]}] (practice): ${f[2]}`);
+        play("send");
         break;
       case "ping":
         addChat("ping", `Ping “${f[1]}” on ${f[3] || f[2]}${f[2] === "target" ? " (target)" : ` (${f[2]})`}`);
@@ -302,14 +317,16 @@ function setMode(next) {
     tab.setAttribute("aria-selected", String(tab.dataset.mode === mode));
   }
   $("panel").hidden = mode !== "sandbox";
-  $("scene").hidden = mode === "sandbox";
   if (mode === "sandbox") {
     current = null;
     drawScene($("scene"), null, iconUrl);
-    $("card-kicker").textContent = "Sandbox";
-    $("card-text").textContent = "Free wheel. Everything the add-on would send shows in the chat.";
+    setZone("mid");
+    setCarriers(null, iconUrl);
+    showInstruction("Sandbox", "Free wheel. Everything the add-on would send shows in the chat.");
     setResult("", "");
-    L.set("target", document.querySelector('[data-set="target"]').value);
+    const target = document.querySelector('[data-set="target"]').value;
+    L.set("target", target);
+    setTarget(target);
   } else {
     nextSituation();
   }
@@ -329,6 +346,7 @@ function bindPanel() {
         if (input.type === "checkbox") input.checked = !input.checked;
       } else {
         $("panel-note").textContent = "";
+        if (input.dataset.set === "target") setTarget(value);
       }
       game.focus();
     });
@@ -384,6 +402,8 @@ function parseSituations(text) {
 
 function setResult(cls, html) {
   const el = $("card-result");
+  el.className = "card-result";
+  void el.offsetWidth; // restart the shake or flash animation
   el.className = `card-result ${cls}`;
   el.innerHTML = html;
 }
@@ -402,11 +422,14 @@ function nextSituation() {
   current = pick;
   answered = false;
   L.set("target", pick.opts.target || "none");
+  setTarget(pick.opts.target || "none");
   drawScene($("scene"), pick.scene, iconUrl);
-  $("card-kicker").textContent = `Situation · ${session.done + 1}`;
-  $("card-text").textContent = pick.instruction;
+  setZone(pick.scene.side);
+  setCarriers(pick.scene, iconUrl);
+  showInstruction(`Situation ${session.done + 1}`, pick.instruction);
+  setResult("", "");
   const best = store.best[pick.id];
-  setResult("", best ? `Best: ${(best / 1000).toFixed(2)} s` : "");
+  $("best").textContent = best ? `Best on this one: ${(best / 1000).toFixed(2)} s` : "First time on this one";
   shownAt = performance.now();
 }
 
@@ -414,6 +437,7 @@ function onCall(result, msg, path) {
   if (mode !== "train" || !current || answered) return;
   if (result === "blocked") {
     setResult("bad", "Too fast: the add-on keeps 1 s between calls.");
+    play("error");
     return;
   }
   if (result === "undo" || !result.startsWith("sent")) return;
@@ -428,7 +452,10 @@ function onCall(result, msg, path) {
     if (record) {
       store.best[current.id] = Math.round(ms);
       saveStore(store);
+      $("best").textContent = `Best on this one: ${(ms / 1000).toFixed(2)} s`;
     }
+    play(session.streak % 5 === 0 ? "streak" : "success");
+    replay($("tracker"), "flash");
     setResult("ok", `✓ ${(ms / 1000).toFixed(2)} s${record ? (best ? " · new best!" : "") : ` · best ${(best / 1000).toFixed(2)} s`}`);
     updateStats();
     setTimeout(() => {
@@ -437,20 +464,47 @@ function onCall(result, msg, path) {
   } else {
     session.errors += 1;
     session.streak = 0;
+    play("error");
     setResult("bad", `✗ Expected <code>${escapeHtml(current.keys)}</code> → “${escapeHtml(current.msg)}”. ` +
       `You did ${escapeHtml(L.keys(path))}. Try again, or N to skip.`);
     updateStats();
   }
 }
 
+let lastStreak = 0;
 function updateStats() {
   const el = $("stats");
+  setScore(session.done, session.errors);
   if (mode !== "train") {
     el.textContent = "";
     return;
   }
   const avg = session.done ? (session.total / session.done / 1000).toFixed(2) + " s" : "–";
-  el.innerHTML = `Done <b>${session.done}</b> · Errors <b>${session.errors}</b> · Average <b>${avg}</b> · Streak <b>${session.streak}</b>`;
+  el.innerHTML = `<span>Calls done</span><b>${session.done}</b><span>Mistakes</span><b>${session.errors}</b>` +
+    `<span>Average time</span><b>${avg}</b><span>Streak</span><b id="streak">${session.streak}</b>`;
+  if (session.streak > lastStreak) $("streak").classList.add("pulse");
+  lastStreak = session.streak;
+}
+
+function showInstruction(kicker, text) {
+  $("card-kicker").textContent = kicker;
+  $("card-text").textContent = text;
+  replay($("card-text"), "fresh");
+}
+
+function bindSound() {
+  const btn = $("mute");
+  const show = () => {
+    btn.textContent = isMuted() ? "Sound: off" : "Sound: on";
+    btn.setAttribute("aria-pressed", String(isMuted()));
+  };
+  btn.addEventListener("click", () => {
+    setMuted(!isMuted());
+    unlockAudio();
+    show();
+    game.focus();
+  });
+  show();
 }
 
 boot().catch(showError);

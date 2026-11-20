@@ -3,43 +3,118 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Training ground — Command &amp; Conquer</title>
+  <title>Training ground · Command &amp; Conquer</title>
   <meta name="description" content="Practise your Warsong Gulch calls with the real Command &amp; Conquer add-on wheel: hold Tab, flick, release.">
   <link rel="icon" href="media/icons/flag.png">
+  <link rel="stylesheet" href="../hud/hud.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="bar">
-    <a class="brand" href="../">
-      <strong>Command &amp; Conquer</strong>
-      <span class="sub">training ground</span>
-    </a>
-    <nav class="modes" role="tablist" aria-label="Mode">
-      <button type="button" role="tab" id="tab-train" aria-selected="true" data-mode="train">Training</button>
-      <button type="button" role="tab" id="tab-sandbox" aria-selected="false" data-mode="sandbox">Sandbox</button>
-    </nav>
-    <div class="stats" id="stats" aria-live="polite"></div>
-  </header>
-
   <main id="game" class="game" tabindex="0" aria-label="Game screen: hold Tab or Space to open the wheel">
-    <div id="scene" class="scene" aria-hidden="true"></div>
-    <canvas id="screen"></canvas>
+    <div id="world" class="world" data-zone="mid" aria-hidden="true">
+      <div class="world-layer ours"></div>
+      <div class="world-layer mid"></div>
+      <div class="world-layer theirs"></div>
+    </div>
 
+    <!-- Player and target frames, top left -->
+    <section class="frames" aria-label="Unit frames">
+      <div class="unit you">
+        <div class="unit-portrait"><img src="media/icons/def.png" alt=""><span class="unit-level">25</span></div>
+        <div class="unit-bars">
+          <div class="unit-name">You</div>
+          <div class="bar hp"><i></i></div>
+          <div class="bar mp"><i style="--v: 72%"></i></div>
+        </div>
+      </div>
+      <div id="target" class="unit target" hidden>
+        <div class="unit-bars">
+          <div class="unit-name" id="target-name"></div>
+          <div class="bar hp"><i style="--v: 64%"></i></div>
+          <div class="bar mp"><i style="--v: 40%"></i></div>
+        </div>
+        <div class="unit-portrait" id="target-portrait"><span class="letter"></span><span class="unit-level">24</span></div>
+      </div>
+    </section>
+
+    <!-- Battleground score, top centre: good calls win flags for us -->
+    <section class="score" title="Every 5 good calls win a flag for us. Every 3 mistakes give one to them.">
+      <div class="bg-score">
+        <span class="bg-flag ally" aria-label="Alliance"></span><span id="score-ally">0/3</span>
+        <span class="bg-flag horde" aria-label="Horde"></span><span id="score-horde">0/3</span>
+      </div>
+      <time id="bg-timer" class="score-timer">0:00</time>
+    </section>
+
+    <!-- Instruction, shown like a raid warning -->
     <section id="card" class="card" aria-live="polite">
       <p class="card-kicker" id="card-kicker">Loading the add-on…</p>
-      <p class="card-text" id="card-text"></p>
+      <p class="card-text raid-warning" id="card-text"></p>
       <p class="card-result" id="card-result"></p>
     </section>
 
+    <!-- Minimap with the situation sketch, and flag carriers under it -->
+    <aside class="map">
+      <div class="minimap-zone"><span id="subzone">Warsong Gulch</span><time id="clock">--:--</time></div>
+      <div class="minimap-disc"><div id="scene" class="scene" aria-hidden="true"></div></div>
+      <div id="carriers" class="carriers" aria-label="Flag carriers"></div>
+    </aside>
+
+    <!-- Training stats, like the objectives tracker -->
+    <aside id="tracker" class="tracker">
+      <div class="tracker-head"><span>All Objectives</span><b aria-hidden="true">−</b></div>
+      <div class="tracker-body">
+        <h2>Training</h2>
+        <div class="stats" id="stats" aria-live="polite"></div>
+        <p class="tracker-best" id="best"></p>
+        <p class="tracker-hint"><kbd>N</kbd> next situation</p>
+      </div>
+    </aside>
+
     <section class="chat" aria-label="Battleground chat">
-      <ol id="chat"></ol>
+      <div class="chat-tabs" aria-hidden="true"><span class="on">General</span><span>Combat Log</span></div>
+      <ol id="chat" class="chat-lines"></ol>
       <form id="slash" class="slash" autocomplete="off">
+        <label for="slash-input">Say:</label>
         <input id="slash-input" type="text" placeholder="/cnc status" aria-label="Chat command (/cnc …)">
       </form>
     </section>
 
-    <aside id="panel" class="panel" hidden>
-      <h2>Sandbox</h2>
+    <!-- Decorative action bar: the add-on's keys, lit when pressed -->
+    <div class="actionbar" aria-hidden="true">
+      <div class="slots">
+        <div class="slot wheel" data-key="TAB"><span class="wheel-glyph"></span><kbd>Tab</kbd></div>
+        <div class="slot" data-key="1"><img src="media/icons/efc.png" alt=""><kbd>1</kbd></div>
+        <div class="slot" data-key="2"><img src="media/icons/attack.png" alt=""><kbd>2</kbd></div>
+        <div class="slot" data-key="3"><img src="media/icons/flag.png" alt=""><kbd>3</kbd></div>
+        <div class="slot" data-key="4"><img src="media/icons/def.png" alt=""><kbd>4</kbd></div>
+        <div class="slot" data-key="5"><img src="media/icons/inc.png" alt=""><kbd>5</kbd></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot train-only next" data-key="N"><span class="next-glyph">›</span><kbd>N</kbd></div>
+      </div>
+      <div class="xp"><i id="xp"></i></div>
+    </div>
+
+    <div id="help" class="help">
+      <kbd>Tab</kbd> or <kbd>Space</kbd>: hold, flick to an icon, release to send ·
+      <kbd>1</kbd>–<kbd>5</kbd>: EFC, ATTACK, FC, DEF, INC directly
+    </div>
+
+    <nav class="micro" aria-label="Menu">
+      <a class="wow-btn dark" href="../" title="About the add-on">Command &amp; Conquer</a>
+      <span class="modes" role="tablist" aria-label="Mode">
+        <button type="button" class="wow-btn" role="tab" id="tab-train" aria-selected="true" data-mode="train">Training</button>
+        <button type="button" class="wow-btn" role="tab" id="tab-sandbox" aria-selected="false" data-mode="sandbox">Sandbox</button>
+      </span>
+      <button type="button" class="wow-btn dark" id="mute" aria-pressed="false" title="Sounds on or off">Sound: on</button>
+    </nav>
+
+    <aside id="panel" class="panel wow-panel" hidden>
+      <h2 class="panel-title">Sandbox options</h2>
       <fieldset>
         <legend>Situation</legend>
         <label>Target
@@ -65,22 +140,18 @@
       <p class="hint" id="panel-note"></p>
     </aside>
 
-    <div id="help" class="help">
-      <kbd>Tab</kbd> or <kbd>Space</kbd>: hold, flick to an icon, release to send ·
-      <kbd>1</kbd>–<kbd>5</kbd>: EFC, ATTACK, FC, DEF, INC directly ·
-      <span class="train-only"><kbd>N</kbd>: next</span>
-    </div>
-    <div id="touch" class="touch" hidden>
+    <canvas id="screen"></canvas>
+
+    <div id="touch" class="touch wow-panel" hidden>
       This trainer needs a keyboard and a mouse, like the game.
     </div>
   </main>
 
   <footer class="foot">
     <span id="build"></span>
-    <span>The wheel on this page is the add-on's own Lua code, run in your browser.</span>
-    <a href="../">About the add-on</a>
+    <span>The wheel is the add-on's own Lua code, run in your browser.</span>
     <a href="https://github.com/silentdany/command-and-conquer">Source</a>
-    <span>Icons: game-icons.net (CC BY 3.0)</span>
+    <span>Icons: game-icons.net (CC BY 3.0) · Backgrounds: original art · Fan-made, not affiliated with Blizzard</span>
   </footer>
 
   <script src="vendor/wasmoon/index.js"></script>
