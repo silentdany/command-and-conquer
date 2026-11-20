@@ -43,6 +43,7 @@ Touches directes (Échap > Raccourcis > AddOns) : « EFC only », « ATTACK only
 - Touches : `Tab` ou `Espace` tenu, `1` à `5` pour les touches directes.
 - Situations : [web/situations.txt](web/situations.txt), une ligne par situation, avec le call attendu en touches de la roue (`INC > TUN > 3`). Les tests vérifient que chaque situation existe encore dans la roue.
 - Site : landing page de l'add-on (`web/landing/`) sur https://cnc.accura.dev, page d'entraînement sous `/training-ground/`. Vercel reconstruit et publie à chaque push (`vercel.json`, build en Node seul : `tools/tga2png.mjs` convertit les textures).
+- Habillage : les deux pages ressemblent à un écran de jeu Forever (score, minicarte, cadres, chat, barre d'action), tout dessiné en CSS (`web/hud/hud.css`), sur des fonds originaux floutés par zone. Sons synthétisés (`web/sound.js`), coupables. Crédits : [web/CREDITS.md](web/CREDITS.md).
 - En local : `npm ci --prefix web && node tools/build-web.mjs && python3 -m http.server -d _site`.
 
 ## Pourquoi « relâcher pour envoyer »
