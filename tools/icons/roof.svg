@@ -1,0 +1,4 @@
+<!-- Command & Conquer: roof (drawn for the add-on, white on transparent, 64 grid) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs><mask id="cut"><rect width="64" height="64" fill="#fff"/><g stroke="#000" stroke-width="1.8"><path d="M11 25 L19 33"/><path d="M19 17 L26 25"/><path d="M53 25 L45 33"/><path d="M45 17 L38 25"/></g></mask></defs><g mask="url(#cut)" fill="#fff"><path d="M1 34 L32 4 L63 34 L54 40 L32 18 L10 40 Z"/><path d="M13 39 H51 V62 H13 Z" opacity=".5"/></g>
+</svg>

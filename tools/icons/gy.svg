@@ -1,0 +1,4 @@
+<!-- Command & Conquer: gy (drawn for the add-on, white on transparent, 64 grid) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs><mask id="cut"><rect width="64" height="64" fill="#fff"/><path d="M29 15 h6 v9 h8 v6 h-8 v17 h-6 v-17 h-8 v-6 h8 z" fill="#000"/></mask></defs><g mask="url(#cut)" fill="#fff"><path d="M13 58 V27 A19 19 0 0 1 51 27 V58 Z"/><rect x="4" y="56" width="56" height="7" rx="1.5"/></g>
+</svg>

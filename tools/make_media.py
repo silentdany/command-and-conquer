@@ -13,7 +13,8 @@ Writes CommandAndConquer/Media/:
     sector5_fill.tga, sector5_border.tga   one sector of a 5-part wheel (step 1, v0.8)
     sector6_fill.tga, sector6_border.tga   one sector of a 6-part wheel, pointing up
     center.tga                              center disc with its border
-    icons/<name>.tga                        white game-icons.net icons, 64x64
+    icons/<name>.tga                        white icons, 64x64: game-icons.net, or
+                                            tools/icons/<name>.svg when present
 
 Sector textures span the whole wheel (the wheel center is the texture
 center) so the add-on rotates one texture per sector. Everything stays
@@ -38,26 +39,23 @@ GAP = 0.011         # gap between sectors, fraction of texture size
 BORDER = 0.0055     # border thickness, fraction of texture size
 BORDER_RGBA = (166, 138, 98, 235)
 
-# Icon name in the add-on -> game-icons.net name.
+# Icon name in the add-on -> game-icons.net name. Icons with an SVG in
+# tools/icons/ (drawn for the add-on, see CREDITS.md) use that file instead.
 ICONS = {
     "def": "checked-shield",
     "flag": "flying-flag",
     "efc": "running-ninja",
-    "attack": "broadsword",
-    "inc": "hazard-sign",
+    "attack": "crossed-swords",
+    "inc": "hunting-horn",
     "scout": "spyglass",
     "cancel": "cancel",
     "take": "grab",
-    "roof": "house",
-    "ramp": "stairs",
-    "tunnel": "dungeon-gate",
-    "gy": "tombstone",
-    "mid": "crossroad",
     "escort": "guards",
     "zerg": "rally-the-troops",
     "help": "medical-pack",
     "cap": "trophy-cup",
 }
+LOCAL_ICONS = os.path.join(os.path.dirname(__file__), "icons")
 
 
 def save_tga(img, name):
@@ -132,17 +130,43 @@ def make_center():
     save_tga(img, "center.tga")
 
 
-def make_icons(icons_json):
+def _svg_png(svg):
     import cairosvg  # only needed for the icons
 
+    png = cairosvg.svg2png(bytestring=svg.encode(), output_width=256, output_height=256)
+    return Image.open(io.BytesIO(png)).convert("RGBA")
+
+
+def render_icon(svg):
+    """White icon on transparent, 64x64: drawn at 256 and scaled down.
+
+    CairoSVG ignores masks, so an icon's cut-outs (a <mask id="cut">: the
+    black shapes in it are carved out of the icon) are drawn on their own
+    and subtracted from the icon's alpha here."""
+    import re
+
+    cut = re.search(r'<mask id="cut">(.*?)</mask>', svg, re.S)
+    img = _svg_png(re.sub(r'<mask id="cut">.*?</mask>', "", svg, flags=re.S).replace(' mask="url(#cut)"', ""))
+    if cut:
+        head = svg[: svg.index(">", svg.index("<svg")) + 1]
+        shapes = re.sub(r'<rect width="64" height="64" fill="#fff"/>', "", cut.group(1)).replace("#000", "#fff")
+        holes = _svg_png(head + shapes + "</svg>").getchannel("A")
+        alpha = ImageChops.multiply(img.getchannel("A"), ImageChops.invert(holes))
+        img.putalpha(alpha)
+    return img.resize((64, 64), Image.LANCZOS)
+
+
+def make_icons(icons_json):
     data = json.load(open(icons_json))["icons"]
     for key, name in ICONS.items():
-        body = data[name]["body"]
+        body = data[name]["body"].replace('fill="currentColor"', 'fill="#fff"')
         svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" '
-               f'width="64" height="64" style="color:white">{body}</svg>')
-        png = cairosvg.svg2png(bytestring=svg.encode())
-        img = Image.open(io.BytesIO(png)).convert("RGBA")
-        save_tga(img, f"icons/{key}.tga")
+               f'width="64" height="64">{body}</svg>')
+        save_tga(render_icon(svg), f"icons/{key}.tga")
+    for file in sorted(os.listdir(LOCAL_ICONS)):
+        if file.endswith(".svg"):
+            svg = open(os.path.join(LOCAL_ICONS, file)).read()
+            save_tga(render_icon(svg), f"icons/{file[:-4]}.tga")
 
 
 def export_png(out_dir):

@@ -1,0 +1,4 @@
+<!-- Command & Conquer: tunnel (drawn for the add-on, white on transparent, 64 grid) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs><mask id="cut"><rect width="64" height="64" fill="#fff"/><g stroke="#000" stroke-width="2.2"><path d="M3 40 H17"/><path d="M47 40 H61"/><path d="M8 18 L19 25"/><path d="M56 18 L45 25"/><path d="M32 4 V19"/><path d="M3 52 H17"/><path d="M47 52 H61"/></g></mask></defs><g mask="url(#cut)" fill="#fff"><path d="M3 62 V33 A29 29 0 0 1 61 33 V62 H47 V34 A15 15 0 0 0 17 34 V62 Z"/><rect x="0" y="59" width="64" height="5"/></g>
+</svg>

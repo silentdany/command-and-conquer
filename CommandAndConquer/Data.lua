@@ -32,7 +32,7 @@
 
 local _, ns = ...
 
-ns.VERSION = "0.8.2"
+ns.VERSION = "0.8.3"
 ns.CANCEL = "CANCEL"
 
 -- Ring indices (see RINGS in Wheel.lua).
@@ -48,7 +48,7 @@ ns.CANCEL_SLOT = { [3] = 3, [4] = 5, [5] = 5 }
 ns.OURS, ns.THEIRS, ns.NEUTRAL = "ours", "theirs", "neutral"
 
 ns.PLACES = {
-  { key = "FR", label = "FR", icon = "flag", name = "FLAG ROOM" },
+  { key = "FR", label = "FR", icon = "fr", name = "FLAG ROOM" },
   { key = "ROOF", label = "ROOF", icon = "roof", name = "ROOF" },
   { key = "RAMP", label = "RAMP", icon = "ramp", name = "RAMP" },
   { key = "MID", label = "MID", icon = "mid", name = "MID", neutral = true },

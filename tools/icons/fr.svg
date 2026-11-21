@@ -1,0 +1,4 @@
+<!-- Command & Conquer: fr (drawn for the add-on, white on transparent, 64 grid) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs><mask id="cut"><rect width="64" height="64" fill="#fff"/><path d="M20 21 C27 17 34 24 42 21 C48 19 52 19 56 20" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/></mask></defs><g mask="url(#cut)" fill="#fff"><path d="M14.5 1 L18 7 L14.5 9 L11 7 Z"/><rect x="12.4" y="8" width="4.3" height="48" rx="1.2"/><path d="M16.7 10 C25 5 33 13 42 9 C49 6 55 7 61 10 L58 21 L61 33 C55 30 49 30 42 33 C33 37 25 29 16.7 34 Z"/><path d="M5 63 L9 55 H20 L24 63 Z"/></g>
+</svg>
