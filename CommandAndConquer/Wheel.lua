@@ -102,6 +102,7 @@ local ON_CLICK = [[
     end
     self:SetAttribute("pending-ring", nil)
     self:SetAttribute("pending-idx", nil)
+    self:SetAttribute("guard", nil)
     local r1 = owner:GetFrameRef("r1")
     local preset = self:GetAttribute("preset-" .. button)
     if preset then
@@ -236,8 +237,39 @@ local PICK = [[
       self:GetFrameRef("r" .. ring):Hide()
       local rn = self:GetFrameRef("r" .. nextRing)
       rn:ClearAllPoints()
-      rn:SetPoint("CENTER", node, "CENTER")
+      -- The next ring opens on the picked sector, shifted in from the
+      -- screen's edges just enough to stay whole on screen.
+      local dx, dy = 0, 0
+      local screen = self:GetFrameRef("screen")
+      local l, b, w, h = node:GetRect()
+      local _, _, sw, sh = screen:GetRect()
+      if l and sw then
+        local k = node:GetEffectiveScale() / screen:GetEffectiveScale()
+        local r = ((send:GetAttribute("outer-" .. nextRing) or 0) + 12) * k
+        local cx, cy = (l + w / 2) * k, (b + h / 2) * k
+        local tx, ty = cx, cy
+        if sw > 2 * r then tx = max(r, min(sw - r, cx)) else tx = sw / 2 end
+        if sh > 2 * r then ty = max(r, min(sh - r, cy)) else ty = sh / 2 end
+        dx, dy = (tx - cx) / k, (ty - cy) / k
+      end
+      rn:SetPoint("CENTER", node, "CENTER", dx, dy)
       rn:Show()
+      -- Shifted, the ring can open with a sector under the cursor: that
+      -- sector is not picked until the cursor has left it.
+      send:SetAttribute("guard", nil)
+      if dx ~= 0 or dy ~= 0 then
+        local mx, my = screen:GetMousePosition()
+        if mx and my then
+          mx, my = mx * sw, my * sh
+          local k = node:GetEffectiveScale() / screen:GetEffectiveScale()
+          for i = 1, send:GetAttribute("n-" .. nextRing) or 0 do
+            local l2, b2, w2, h2 = self:GetFrameRef("n" .. nextRing .. "-" .. i):GetRect()
+            if l2 and mx >= l2 * k and mx <= (l2 + w2) * k and my >= b2 * k and my <= (b2 + h2) * k then
+              send:SetAttribute("guard", nextRing .. "-" .. i)
+            end
+          end
+        end
+      end
     end
   end
   send:SetAttribute("state", send:GetAttribute("step") .. ":" .. send:GetAttribute("path"))
@@ -253,6 +285,9 @@ local ON_ENTER = [[
     return
   end
   local idx = self:GetAttribute("idx")
+  if send:GetAttribute("guard") == ring .. "-" .. idx then
+    return -- under the cursor when its ring opened shifted: wait for a real move
+  end
   local dwell = send:GetAttribute("dwell")
   if dwell then
     local timer = owner:GetFrameRef("dwell")
@@ -270,6 +305,9 @@ local ON_ENTER = [[
 
 local ON_LEAVE = [[
   local send = owner:GetFrameRef("send")
+  if send:GetAttribute("guard") == self:GetAttribute("ring") .. "-" .. self:GetAttribute("idx") then
+    send:SetAttribute("guard", nil)
+  end
   if send:GetAttribute("pending-ring") == self:GetAttribute("ring")
       and send:GetAttribute("pending-idx") == self:GetAttribute("idx") then
     send:SetAttribute("pending-ring", nil)
@@ -453,6 +491,10 @@ function W:Build()
   local rings = {}
   for r = 1, #RINGS do rings[r] = makeRing(root, r) end
   send:SetAttribute("rings", #RINGS)
+  for r = 1, #RINGS do
+    send:SetAttribute("outer-" .. r, RINGS[r].outer)
+    send:SetAttribute("n-" .. r, RINGS[r].n)
+  end
 
   -- Message table, as attributes the secure snippets can read.
   for a, action in ipairs(ns.ACTIONS) do
