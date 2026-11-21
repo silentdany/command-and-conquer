@@ -10,7 +10,7 @@ Tout l'add-on est en anglais pour le moment.
 3. Étape 2, les lieux en « pyramide », même disposition partout : salle du drapeau en haut, toit en haut à droite, rampe en bas à droite, mid en bas, cimetière (GY) en bas à gauche, tunnel en haut à gauche.
 4. Relâcher : le message part en /bg (avec un ping ciblé si une cible convient).
 
-Chaque anneau s'ouvre sur la case choisie ; près d'un bord de l'écran, il s'ouvre décalé juste assez pour rester entier (0.8.1). Si une case se retrouve alors sous le curseur, elle n'est prise qu'après un vrai mouvement.
+La roue s'ouvre sous le curseur, puis chaque anneau sur la case choisie ; près d'un bord de l'écran, l'anneau (le premier aussi, depuis la 0.8.2) s'ouvre décalé juste assez pour rester entier. Si une case se retrouve alors sous le curseur, elle n'est prise qu'après un vrai mouvement. Chaque décalage est noté dans le rapport (`[fit ...]`, ou `norect` si le jeu ne donne pas la position des cases).
 
 **Couleur = côté** : bleu = chez nous, rouge = chez eux. Jamais de mot à lire. Mid n'a pas de côté.
 

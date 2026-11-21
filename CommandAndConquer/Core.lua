@@ -209,6 +209,9 @@ W.OnClosed = function(result, msg, path)
     if units.friendUnit then seen[#seen + 1] = "friend " .. units.friendUnit .. "=" .. tostring(UnitExists(units.friendUnit)) end
     if #seen > 0 then extra = " [units " .. table.concat(seen, ", ") .. "]" end
   end
+  -- Rings shifted to stay on screen (or rects not readable), see Wheel.lua.
+  local fit = W.send and W.send:GetAttribute("fit")
+  if fit and fit ~= "" then extra = extra .. " [fit " .. fit:gsub("^ ", "") .. "]" end
   R:Add("call", "%s %s: %s%s%s", inBattleground() and "BG" or "practice", result, tostring(msg),
     path and path ~= "" and (" (" .. path .. ")") or "", extra)
 end

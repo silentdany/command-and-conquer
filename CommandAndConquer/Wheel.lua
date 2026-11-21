@@ -88,13 +88,28 @@ local ON_CLICK = [[
       self:SetAttribute("state", "closed")
       return false
     end
+    local preset = self:GetAttribute("preset-" .. button)
+    local first = preset and 2 or 1
+    -- The wheel opens under the cursor, shifted in from the screen's edges
+    -- just enough to stay whole on screen.
     local x, y = screen:GetMousePosition()
+    local sw, sh = screen:GetWidth(), screen:GetHeight()
+    local px, py, cx, cy
     root:ClearAllPoints()
     if x and y then
-      root:SetPoint("CENTER", screen, "BOTTOMLEFT", x * screen:GetWidth(), y * screen:GetHeight())
+      px, py = x * sw, y * sh
+      cx, cy = px, py
+      local ring = owner:GetFrameRef("r" .. first)
+      local k = ring:GetEffectiveScale() / screen:GetEffectiveScale()
+      local r = ((self:GetAttribute("outer-" .. first) or 0) + 12) * k
+      if sw > 2 * r then cx = max(r, min(sw - r, px)) else cx = sw / 2 end
+      if sh > 2 * r then cy = max(r, min(sh - r, py)) else cy = sh / 2 end
+      root:SetPoint("CENTER", screen, "BOTTOMLEFT", cx, cy)
     else
       root:SetPoint("CENTER", screen, "CENTER")
     end
+    self:SetAttribute("guard", nil)
+    self:SetAttribute("fit", "")
     local rings = self:GetAttribute("rings")
     for i = 2, rings do
       owner:GetFrameRef("r" .. i):Hide()
@@ -102,9 +117,7 @@ local ON_CLICK = [[
     end
     self:SetAttribute("pending-ring", nil)
     self:SetAttribute("pending-idx", nil)
-    self:SetAttribute("guard", nil)
     local r1 = owner:GetFrameRef("r1")
-    local preset = self:GetAttribute("preset-" .. button)
     if preset then
       local base = "" .. preset
       self:SetAttribute("a", preset)
@@ -128,6 +141,20 @@ local ON_CLICK = [[
       r1:Show()
     end
     root:Show()
+    -- Shifted, the wheel can open with a sector under the cursor: that
+    -- sector is not picked until the cursor has left it.
+    if px and (cx ~= px or cy ~= py) then
+      self:SetAttribute("fit", format("r%d:%d,%d", first, floor(cx - px + 0.5), floor(cy - py + 0.5)))
+      local k = screen:GetEffectiveScale()
+      for i = 1, self:GetAttribute("n-" .. first) or 0 do
+        local node = owner:GetFrameRef("n" .. first .. "-" .. i)
+        local l2, b2, w2, h2 = node:GetRect()
+        local k2 = node:GetEffectiveScale() / k
+        if l2 and px >= l2 * k2 and px <= (l2 + w2) * k2 and py >= b2 * k2 and py <= (b2 + h2) * k2 then
+          self:SetAttribute("guard", first .. "-" .. i)
+        end
+      end
+    end
     self:SetAttribute("state", "open")
     return false
   end
@@ -251,6 +278,11 @@ local PICK = [[
         if sw > 2 * r then tx = max(r, min(sw - r, cx)) else tx = sw / 2 end
         if sh > 2 * r then ty = max(r, min(sh - r, cy)) else ty = sh / 2 end
         dx, dy = (tx - cx) / k, (ty - cy) / k
+        if dx ~= 0 or dy ~= 0 then
+          send:SetAttribute("fit", (send:GetAttribute("fit") or "") .. format(" r%d:%d,%d", nextRing, floor(tx - cx + 0.5), floor(ty - cy + 0.5)))
+        end
+      else
+        send:SetAttribute("fit", (send:GetAttribute("fit") or "") .. format(" r%d:norect", nextRing))
       end
       rn:SetPoint("CENTER", node, "CENTER", dx, dy)
       rn:Show()
