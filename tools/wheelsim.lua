@@ -424,6 +424,11 @@ print("== 23. Key binding bodies compile as the game wraps them")
 -- The game compiles each <Binding> body inside a function, on one line: a
 -- line comment there comments out the closing "end" (error at login).
 local xml = read(ROOT .. "/CommandAndConquer/Bindings.xml")
+-- XML first: a comment may not contain a double hyphen (0.8.4 broke the
+-- whole file this way: "not well-formed (invalid token)").
+for body in xml:gmatch("<!%-%-(.-)%-%->") do
+  check(not body:find("%-%-"), "double hyphen inside an XML comment of Bindings.xml")
+end
 local nb = 0
 for name, body in xml:gmatch('<Binding name="([%w_]+)"[^>]*>(.-)</Binding>') do
   local ok, err = pcall(loadIn, "return function(keystate) " .. body .. " end", name)

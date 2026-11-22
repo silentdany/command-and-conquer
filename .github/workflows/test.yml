@@ -20,6 +20,14 @@ jobs:
             echo "ok $f"
           done
 
+      - name: XML files are well-formed (the game rejects the whole file otherwise)
+        run: |
+          for f in CommandAndConquer/*.xml probe/CnCProbe/*.xml; do
+            [ -f "$f" ] || continue
+            python3 -c "import sys, xml.dom.minidom; xml.dom.minidom.parse(sys.argv[1])" "$f"
+            echo "ok $f"
+          done
+
       - name: TOC lists existing files only
         run: |
           for toc in CommandAndConquer/CommandAndConquer.toc probe/CnCProbe/CnCProbe.toc; do

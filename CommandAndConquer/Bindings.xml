@@ -3,7 +3,8 @@
        wheel button with override bindings, so the release is a hardware click.
        No header attribute: Forever shows it as a raw "HEADER_CNC" row.
        The game wraps each body in a function on one line, so a body must not be
-       a line comment ("--"): it would comment out the closing "end". -->
+       a Lua line comment: it would comment out the closing "end". Block comments
+       only. And no double hyphen in this XML comment: the game rejects the file. -->
   <Binding name="CNC_WHEEL">--[[ secure override binding ]]</Binding>
   <Binding name="CNC_EFC">--[[ secure override binding ]]</Binding>
   <Binding name="CNC_ATTACK">--[[ secure override binding ]]</Binding>
