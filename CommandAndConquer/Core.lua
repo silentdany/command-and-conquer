@@ -118,7 +118,6 @@ local function applyOptions()
   local timers = ns.timersOK == true
   local units = carrierUnits()
   W:SetOptions({
-    spam = timers, -- anti-spam 1 s (decided 18/11/2026), needs the timers
     dwell = (timers and expOn("hover")) and 0.1 or nil,
     undo = timers and expOn("undo"),
     me = expOn("carrier") and units.friendUnit ~= nil,
@@ -170,9 +169,9 @@ local function runSelfTest(asked)
     R:Add("selftest", "secure timers %s (%s)%s; secure code sees UnitIsUnit=%s, UnitExists=%s",
       ok and "OK" or "FAILED", detail, asked and ", /cnc timers" or "", tostring(env.UnitIsUnit), tostring(env.UnitExists))
     if asked then
-      out("secure timers %s (%s): anti-spam %s.", ok and "OK" or "FAILED", detail, ok and "ON" or "OFF")
+      out("secure timers %s (%s): hover and undo %s.", ok and "OK" or "FAILED", detail, ok and "possible" or "off")
     elseif not ok then
-      out("secure timers unavailable: anti-spam and timed experimental features are off.")
+      ns.Debug("secure timers unavailable: hover and undo stay off.")
     end
     applyOptions()
   end)
@@ -232,14 +231,13 @@ local function help()
   out("/cnc carrier enemy|friend <unit> : carrier units for the experimental pings (clear to reset)")
   out("/cnc report : test report summary (full report saved at logout or /reload)")
   out("/cnc status : show mode and bound keys")
-  out("/cnc timers : test the secure timers again (anti-spam needs them)")
+  out("/cnc timers : test the secure timers again (experimental hover and undo need them)")
 end
 
 local function status()
   out("v%s, calls go to: %s, size %.2f, pings %s", ns.VERSION, inBattleground() and "/bg" or "a whisper to you (practice)",
     CnCDB.scale or 1, CnCDB.ping == false and "OFF" or "ON")
-  out("secure timers: %s (anti-spam %s)", ns.timersOK == nil and "not tested" or (ns.timersOK and "OK" or "FAILED"),
-    ns.timersOK and "ON" or "OFF")
+  out("secure timers: %s", ns.timersOK == nil and "not tested" or (ns.timersOK and "OK" or "FAILED"))
   local list = {}
   for name in pairs(EXP_FEATURES) do list[#list + 1] = name .. (CnCDB.exp[name] and "+" or "-") end
   table.sort(list)

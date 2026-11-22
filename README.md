@@ -26,14 +26,14 @@ Relâcher au centre d'une étape optionnelle envoie ce qui est déjà choisi ; l
 
 Touches directes (Échap > Raccourcis > AddOns) : « EFC only », « ATTACK only », « FC only », « DEF only », « INC only » ouvrent directement l'étape 2.
 
-### Anti-spam et mode expérimental
+### Mode expérimental
 
-- **Anti-spam** : une seconde minimum entre deux calls (le second est refusé, avec un message).
+- **Pas d'anti-spam** (décidé le 22/11/2026) : chaque relâchement envoie son call. Il demandait un minuteur sécurisé, qui ne marche pas sur Forever.
 - **Expérimental** (`/cnc exp on`, éteint par défaut, chaque nouveauté avec repli automatique) :
   - `hover` : une case n'est prise qu'après 0,1 s sur son icône (contre les faux calls en glissant trop vite) ;
   - `undo` : retaper la touche (sans rien choisir) dans les 3 s après un call envoie « Ignore my last call » ;
   - `carrier` : pings et marque tête de mort sur les unités des portraits des porteurs (`/cnc carrier enemy arena1`, `/cnc carrier friend arena2`, unités à confirmer avec `/cnct carriers`), repli sur la cible ; « I have their flag » automatique si tu portes. Attention : le code source Blizzard ne met pas `UnitIsUnit` dans l'environnement sécurisé, donc cette dernière partie ne marchera que si Forever l'ajoute (le rapport le dit).
-- Les fonctions minutées (anti-spam, hover, undo) reposent sur `RegisterAutoHide` ; un auto-test au chargement vérifie qu'il marche, sinon elles restent coupées.
+- Les fonctions minutées (hover, undo) reposent sur `RegisterAutoHide` ; un auto-test au chargement vérifie qu'il marche, sinon elles restent coupées. Sur Forever il ne marche pas (`/cnc timers`, 22/11/2026 : jamais déclenché en 20 s, à l'écran comme hors écran), donc hover et undo restent coupés.
 - **Rapport** : l'add-on note ce qui a marché ou bloqué (auto-test, calls envoyés, actions bloquées) dans ses SavedVariables, à la déconnexion ou au `/reload`. `tools/update-cnc.bat` le copie dans le presse-papiers. `/cnc report` en affiche le résumé.
 
 ## Page d'entraînement (simulateur)

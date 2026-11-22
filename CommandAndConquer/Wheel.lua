@@ -13,11 +13,12 @@
 -- Add-on (insecure) code only draws: it mirrors the secure state through
 -- the button's "state" attribute and never decides what is sent.
 --
--- Timed features (anti-spam 1 s, experimental hover delay and "Ignore my
--- last call") use RegisterAutoHide on tiny secure frames: a frame the mouse
--- is not over hides itself after the given time, from Blizzard's code,
--- which is allowed in combat. A self-test at login checks it works on
--- Forever; if not, those features stay off (fallback = v0.7 behaviour).
+-- Timed experimental features (hover delay and "Ignore my last call") use
+-- RegisterAutoHide on tiny secure frames: a frame the mouse is not over
+-- hides itself after the given time, from Blizzard's code, which is allowed
+-- in combat. A self-test at login checks it works; on Forever it does not
+-- (/cnc timers, 22/11/2026: never hid in 20 s, on or off screen), so those
+-- features stay off. No anti-spam (decided 22/11/2026): every release sends.
 
 local _, ns = ...
 
@@ -69,8 +70,8 @@ W.COLOR_SIDE = COLOR_SIDE
 --   base        path when the current ring opened
 --   selN        picked sector on ring N (for drawing), a = picked action
 --   next-<path> ring to open after picking <path> (from Data.lua)
---   result      outcome of the last release: none, sent, sent-me, undo, blocked
--- Options (set out of combat): prefix, pings, spam, dwell, exp-undo,
+--   result      outcome of the last release: none, sent, sent-me, undo
+-- Options (set out of combat): prefix, pings, dwell, exp-undo,
 -- exp-me, fc-unit, undo-msg.
 
 -- Pre-click on the wheel button. `button` is "LeftButton" for the main
@@ -177,8 +178,6 @@ local ON_CLICK = [[
       msg = self:GetAttribute("undo-msg")
       result = "undo"
     end
-  elseif self:GetAttribute("spam") and owner:GetFrameRef("spam"):IsShown() then
-    result = "blocked"
   else
     result = "sent"
     ping = self:GetAttribute("p" .. path)
@@ -199,7 +198,7 @@ local ON_CLICK = [[
   self:SetAttribute("msg", msg)
   self:SetAttribute("result", result)
   self:SetAttribute("state", "closed")
-  if result == "none" or result == "blocked" then
+  if result == "none" then
     return false
   end
   local text = self:GetAttribute("prefix") .. " " .. msg
@@ -207,11 +206,6 @@ local ON_CLICK = [[
     text = text .. "\n" .. ping
   end
   self:SetAttribute("macrotext", text)
-  if self:GetAttribute("spam") then
-    local t = owner:GetFrameRef("spam")
-    t:Show()
-    t:RegisterAutoHide(1)
-  end
   if result ~= "undo" and self:GetAttribute("exp-undo") then
     local t = owner:GetFrameRef("recent")
     t:Show()
@@ -526,7 +520,6 @@ function W:Build()
   send:Hide()
 
   local timers = {
-    spam = makeTimer("CnCTimerSpam"),
     recent = makeTimer("CnCTimerRecent"),
     dwell = makeTimer("CnCTimerDwell"),
     probe = makeTimer("CnCTimerProbe"),
@@ -636,11 +629,10 @@ function W:ApplyPings(opts)
   return true
 end
 
--- o: spam, dwell (seconds or nil), undo, me, fcUnit.
+-- o: dwell (seconds or nil), undo, me, fcUnit.
 function W:SetOptions(o)
   if InCombatLockdown() then return false end
   local send = self.send
-  send:SetAttribute("spam", o.spam and true or nil)
   send:SetAttribute("dwell", o.dwell)
   send:SetAttribute("exp-undo", o.undo and true or nil)
   send:SetAttribute("exp-me", o.me and true or nil)
@@ -817,9 +809,7 @@ function W:Refresh()
     self.shownBase = nil
     local result = send:GetAttribute("result")
     local msg = send:GetAttribute("msg")
-    if result == "blocked" then
-      self:ShowToast("Too fast: 1 s between calls", COLOR_SIDE.theirs)
-    elseif result ~= "none" and msg and msg ~= "" then
+    if result ~= "none" and msg and msg ~= "" then
       self:ShowToast(msg)
     end
     if self.restoreLook then
