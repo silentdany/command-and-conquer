@@ -423,4 +423,16 @@ check(math.abs(ax - bx) < 0.01 and math.abs(ay - by) < 0.01, "ring 2 on the pick
 release()
 reset()
 
+print("== 23. Key binding bodies compile as the game wraps them")
+-- The game compiles each <Binding> body inside a function, on one line: a
+-- line comment there comments out the closing "end" (error at login).
+local xml = read(ROOT .. "/CommandAndConquer/Bindings.xml")
+local nb = 0
+for name, body in xml:gmatch('<Binding name="([%w_]+)"[^>]*>(.-)</Binding>') do
+  local ok, err = pcall(loadIn, "return function(keystate) " .. body .. " end", name)
+  check(ok, "binding " .. name .. ": " .. tostring(err))
+  nb = nb + 1
+end
+check(nb >= 6, "bindings found: " .. nb)
+
 print("ALL OK, " .. passed .. " checks, " .. #Emu.macros .. " macros sent (" .. _VERSION .. ")")
