@@ -364,6 +364,9 @@ local SELF_TEST = [[
   local probe = self:GetFrameRef("probe")
   probe:Show()
   probe:RegisterAutoHide(0.3)
+  local off = self:GetFrameRef("probeOff")
+  off:Show()
+  off:RegisterAutoHide(0.3)
   local send = self:GetFrameRef("send")
   send:SetAttribute("env-UnitIsUnit", UnitIsUnit and true or false)
   send:SetAttribute("env-UnitExists", UnitExists and true or false)
@@ -480,11 +483,20 @@ local function makeRing(root, ringIndex)
   return ring
 end
 
--- Tiny secure frame used as a timer (RegisterAutoHide), off screen.
-local function makeTimer(name)
+-- Tiny secure frame used as a timer (RegisterAutoHide): 1 pixel in the
+-- bottom left corner, invisible and click-through. On screen because
+-- Forever never hid the same frame placed off screen (/cnc timers, 0.8.6:
+-- "probe never hid in 20 s"); "offscreen" keeps one there to compare.
+local function makeTimer(name, offscreen)
   local t = CreateFrame("Frame", name, UIParent, "SecureFrameTemplate")
   t:SetSize(1, 1)
-  t:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -20, 20)
+  if offscreen then
+    t:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -20, 20)
+  else
+    t:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
+    t:SetAlpha(0)
+  end
+  t:EnableMouse(false)
   t:Hide()
   return t
 end
@@ -518,6 +530,7 @@ function W:Build()
     recent = makeTimer("CnCTimerRecent"),
     dwell = makeTimer("CnCTimerDwell"),
     probe = makeTimer("CnCTimerProbe"),
+    probeOff = makeTimer("CnCTimerProbeOff", true),
   }
 
   local rings = {}
@@ -647,8 +660,8 @@ function W:SelfTest(done)
   -- (Forever reports showed "probe hid after 2.5 s": the first frame came
   -- 2.5 s after the start, before the timer could run at all). /cnc timers
   -- runs it again at any time.
-  local probe = self.timers.probe
-  local start, frames, env
+  local probe, off = self.timers.probe, self.timers.probeOff
+  local start, frames, env, hidAt, offAt
   self.tester:SetScript("OnUpdate", function(f)
     if not start then
       if InCombatLockdown() then
@@ -671,16 +684,15 @@ function W:SelfTest(done)
     end
     frames = frames + 1
     local t = GetTime() - start
-    local hidden = not probe:IsShown()
+    hidAt = hidAt or (not probe:IsShown() and t) or nil
+    offAt = offAt or (not off:IsShown() and t) or nil
     -- 0.3 s are enough when the timers work; the long wait covers the end of
     -- the loading screen (about 8 frames a second at login on Forever).
-    if hidden or (t > 20 and frames > 120) then
+    if (hidAt and offAt) or (hidAt and t > hidAt + 1) or (t > 20 and frames > 120) then
       f:SetScript("OnUpdate", nil)
-      if hidden then
-        done(t >= 0.2, ("probe hid after %.2f s, %d frames"):format(t, frames), env)
-      else
-        done(false, ("probe never hid in %.1f s, %d frames"):format(t, frames), env)
-      end
+      local function say(at) return at and ("hid after %.2f s"):format(at) or "never hid" end
+      local detail = ("probe %s, off-screen probe %s, %d frames in %.1f s"):format(say(hidAt), say(offAt), frames, t)
+      done(hidAt ~= nil and hidAt >= 0.2, detail, env)
     end
   end)
 end
