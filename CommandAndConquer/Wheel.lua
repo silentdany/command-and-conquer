@@ -637,27 +637,43 @@ end
 
 -- done(ok, detail, env): timers work? env = functions seen by secure code.
 function W:SelfTest(done)
-  if InCombatLockdown() or not SecureHandlerExecute then
-    done(false, "SecureHandlerExecute unavailable or in combat", {})
+  if not SecureHandlerExecute then
+    done(false, "SecureHandlerExecute unavailable", {})
     return
   end
-  local ok, err = pcall(SecureHandlerExecute, self.header, SELF_TEST)
-  local env = {
-    UnitIsUnit = self.send:GetAttribute("env-UnitIsUnit"),
-    UnitExists = self.send:GetAttribute("env-UnitExists"),
-  }
-  if not ok then
-    done(false, "self-test snippet failed: " .. tostring(err), env)
-    return
-  end
-  local start = GetTime()
+  -- The test starts on the first frame drawn and counts frames: during the
+  -- loading screen at login no frame runs, so neither the secure timer nor
+  -- this check advances, and a clock alone would end the test too early
+  -- (Forever reports showed "probe hid after 2.5 s": the first frame came
+  -- 2.5 s after the start, before the timer could run at all).
   local probe = self.timers.probe
+  local start, frames, env
   self.tester:SetScript("OnUpdate", function(f)
+    if not start then
+      if InCombatLockdown() then
+        f:SetScript("OnUpdate", nil)
+        done(false, "in combat", {})
+        return
+      end
+      local ok, err = pcall(SecureHandlerExecute, self.header, SELF_TEST)
+      env = {
+        UnitIsUnit = self.send:GetAttribute("env-UnitIsUnit"),
+        UnitExists = self.send:GetAttribute("env-UnitExists"),
+      }
+      if not ok then
+        f:SetScript("OnUpdate", nil)
+        done(false, "self-test snippet failed: " .. tostring(err), env)
+        return
+      end
+      start, frames = GetTime(), 0
+      return
+    end
+    frames = frames + 1
     local t = GetTime() - start
     local hidden = not probe:IsShown()
-    if hidden or t > 2 then
+    if hidden or (t > 2 and frames > 30) then
       f:SetScript("OnUpdate", nil)
-      done(hidden and t >= 0.2, ("probe hid after %.2f s"):format(t), env)
+      done(hidden and t >= 0.2, ("probe hid after %.2f s, %d frames"):format(t, frames), env)
     end
   end)
 end

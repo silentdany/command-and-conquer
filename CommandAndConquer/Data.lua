@@ -32,7 +32,7 @@
 
 local _, ns = ...
 
-ns.VERSION = "0.8.4"
+ns.VERSION = "0.8.5"
 ns.CANCEL = "CANCEL"
 
 -- Ring indices (see RINGS in Wheel.lua).
