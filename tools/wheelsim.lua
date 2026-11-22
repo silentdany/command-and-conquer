@@ -435,4 +435,10 @@ for name, body in xml:gmatch('<Binding name="([%w_]+)"[^>]*>(.-)</Binding>') do
 end
 check(nb >= 6, "bindings found: " .. nb)
 
+print("== 24. /cnc timers runs the secure timer test again")
+SlashCmdList.COMMANDANDCONQUER("timers")
+wait(1)
+local last = CnCDB.report.lines[#CnCDB.report.lines]
+check(last:find("%[selftest%] secure timers OK %(probe hid after") and last:find("/cnc timers"), last)
+
 print("ALL OK, " .. passed .. " checks, " .. #Emu.macros .. " macros sent (" .. _VERSION .. ")")

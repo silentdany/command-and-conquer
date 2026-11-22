@@ -163,13 +163,15 @@ local function applyBindings()
   return #list
 end
 
-local function runSelfTest()
+local function runSelfTest(asked)
   W:SelfTest(function(ok, detail, env)
     ns.timersOK = ok
     ns.secureEnv = env
-    R:Add("selftest", "secure timers %s (%s); secure code sees UnitIsUnit=%s, UnitExists=%s",
-      ok and "OK" or "FAILED", detail, tostring(env.UnitIsUnit), tostring(env.UnitExists))
-    if not ok then
+    R:Add("selftest", "secure timers %s (%s)%s; secure code sees UnitIsUnit=%s, UnitExists=%s",
+      ok and "OK" or "FAILED", detail, asked and ", /cnc timers" or "", tostring(env.UnitIsUnit), tostring(env.UnitExists))
+    if asked then
+      out("secure timers %s (%s): anti-spam %s.", ok and "OK" or "FAILED", detail, ok and "ON" or "OFF")
+    elseif not ok then
       out("secure timers unavailable: anti-spam and timed experimental features are off.")
     end
     applyOptions()
@@ -230,6 +232,7 @@ local function help()
   out("/cnc carrier enemy|friend <unit> : carrier units for the experimental pings (clear to reset)")
   out("/cnc report : test report summary (full report saved at logout or /reload)")
   out("/cnc status : show mode and bound keys")
+  out("/cnc timers : test the secure timers again (anti-spam needs them)")
 end
 
 local function status()
@@ -331,6 +334,13 @@ SlashCmdList.COMMANDANDCONQUER = function(input)
     out("saved at logout or /reload; tools/update-cnc.bat copies it to the clipboard. /cnc report clear to empty it.")
   elseif cmd == "status" then
     status()
+  elseif cmd == "timers" then
+    if InCombatLockdown() then
+      out("out of combat only.")
+      return
+    end
+    out("testing the secure timers (up to 20 s)...")
+    runSelfTest(true)
   elseif cmd == "debug" then
     ns.debug = not ns.debug
     out("debug %s.", ns.debug and "ON (prints to chat while the wheel is used)" or "OFF")

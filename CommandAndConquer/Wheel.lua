@@ -645,7 +645,8 @@ function W:SelfTest(done)
   -- loading screen at login no frame runs, so neither the secure timer nor
   -- this check advances, and a clock alone would end the test too early
   -- (Forever reports showed "probe hid after 2.5 s": the first frame came
-  -- 2.5 s after the start, before the timer could run at all).
+  -- 2.5 s after the start, before the timer could run at all). /cnc timers
+  -- runs it again at any time.
   local probe = self.timers.probe
   local start, frames, env
   self.tester:SetScript("OnUpdate", function(f)
@@ -671,9 +672,15 @@ function W:SelfTest(done)
     frames = frames + 1
     local t = GetTime() - start
     local hidden = not probe:IsShown()
-    if hidden or (t > 2 and frames > 30) then
+    -- 0.3 s are enough when the timers work; the long wait covers the end of
+    -- the loading screen (about 8 frames a second at login on Forever).
+    if hidden or (t > 20 and frames > 120) then
       f:SetScript("OnUpdate", nil)
-      done(hidden and t >= 0.2, ("probe hid after %.2f s, %d frames"):format(t, frames), env)
+      if hidden then
+        done(t >= 0.2, ("probe hid after %.2f s, %d frames"):format(t, frames), env)
+      else
+        done(false, ("probe never hid in %.1f s, %d frames"):format(t, frames), env)
+      end
     end
   end)
 end
