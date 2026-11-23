@@ -89,7 +89,7 @@ Ensuite :
 | `tools/wheelsim.lua` | Test hors jeu de la roue : `lua5.1 tools/wheelsim.lua` (et `node tools/websim-check.mjs` : le même test en Lua 5.4, moteur de la page) |
 | `web/`, `web/landing/`, `tools/build-web.mjs`, `vercel.json` | Page d'entraînement, landing page, construction et publication (Vercel) |
 | `tools/make_media.py` | Génère les textures de la roue et les icônes (game-icons.net, CC BY 3.0, voir `CommandAndConquer/CREDITS.md`) |
-| `docs/` | Carte v3 (historique ; la carte actuelle est Data.lua) |
+| `docs/` | Carte v3 (historique ; la carte actuelle est Data.lua), recherche Arathi Basin et roue par BG (`recherche-arathi.md`) |
 
 ## Jalons
 
