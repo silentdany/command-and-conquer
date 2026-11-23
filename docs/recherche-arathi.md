@@ -79,7 +79,7 @@ Le code détecte déjà l'entrée en BG (`IsInInstance()` → `"pvp"`, sur `PLAY
 
 | Méthode | Pour | Contre |
 |---|---|---|
-| `GetInstanceInfo()`, 8e valeur = `instanceID` | Un nombre, pas une langue. Classic : **489** = Goulet, **529** = Arathi, **30** = Alterac (warcraft.wiki.gg/InstanceID) | IDs de Forever **à vérifier** (le retail utilise 2107 pour AB). Pourrait être « secret » sur Forever : **à vérifier** |
+| `GetInstanceInfo()`, 8e valeur = `instanceID` | Un nombre, pas une langue. Classic : **489** = Goulet, **529** = Arathi, **30** = Alterac. Jeu actuel : **2106** = Goulet, **2107** = Arathi (warcraft.wiki.gg/InstanceID) | Forever tourne sur le moteur moderne (page Notion « Documentation API Forever ») : les IDs peuvent être ceux du jeu actuel ou ceux de Classic, **à vérifier** (accepter les deux). Pourrait être « secret » : **à vérifier** |
 | `GetInstanceInfo()` 1re valeur, ou `GetRealZoneText()` | Toujours disponible | Nom traduit (« Bassin Arathi » en client français) : à garder en secours, avec les noms FR et EN |
 | `C_Map.GetBestMapForUnit("player")` | uiMapID 1460 (Goulet), 1461 (Arathi) en Classic | La sonde dit la position indisponible en BG ; l'ID de carte peut-être aussi |
 
@@ -96,11 +96,11 @@ Les attributs des cadres sécurisés ne changent que hors combat. Ça tombe bien
 3. **Anneau** : un anneau de plus, 5 cases avec centre, pour les bases d'AB (`{ n = 5, outer = 165, center = true }`). Les anneaux sont tous construits au chargement ; l'arbre de chaque carte dit lequel ouvrir.
 4. **Core.lua** : `currentMap()` appelée là où `updatePrefix()` l'est déjà ; une ligne dans le rapport (`zone`, avec l'instanceID lu, pour confirmer les IDs Forever dès la première partie).
 5. **Tests** (`tools/wheelsim.lua`, `tools/sim/wowemu.lua`) : émuler `GetInstanceInfo`, simuler chaque carte, vérifier le changement de carte et le report hors combat.
-6. **Page d'entraînement** : choix de la carte, `situations.txt` par carte, croquis et sous-zones d'AB dans le HUD.
+6. **Site** (repo `cnc-site`, qui télécharge l'add-on à chaque build) : le sélecteur de BG de la landing montre déjà Arathi « coming soon » ; il faudra la roue AB jouable, des situations AB au training ground et la carte d'Arathi (fichiers du jeu via wago.tools, coordonnées des bases).
 
 ## 5. À tester en jeu avec la sonde (avant de coder la détection)
 
-Ajouter à `probe/CnCProbe` une commande qui affiche, au Goulet et en Arathi :
+D'abord chercher dans ForeverAPI (zmarotrix) et ForeverPlusPlus, les sources Forever listées sur la page Notion « Documentation API Forever ». Puis ajouter à `probe/CnCProbe` une commande qui affiche, au Goulet et en Arathi :
 
 - toutes les valeurs de `GetInstanceInfo()` (surtout la 8e), `GetRealZoneText()`, `GetZoneText()`, `GetSubZoneText()`, et `issecretvalue` sur chacune si la fonction existe ;
 - `C_Map.GetBestMapForUnit("player")` ;
